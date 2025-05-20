@@ -1,0 +1,8 @@
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore secrets
+service_account.json
+.streamlit/secrets.toml
+.env

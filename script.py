@@ -36,7 +36,7 @@ with st.sidebar.form("add_expense"):
 
 #Load Expense Data
 df = load_ex_gsheet(gsheet)
-params = st.experimental_get_query_params()
+params = st.query_params()
 user = params.get("user", ["Guest"])[0]
 
 st.title(f"Welcome {user} 👋")

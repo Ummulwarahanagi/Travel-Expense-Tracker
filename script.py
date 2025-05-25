@@ -70,17 +70,39 @@ to_currency = st.sidebar.selectbox("To", currencies, index=0)      # Default USD
 conv_amount = st.sidebar.number_input("Amount", min_value=0.0, value=1.0, step=0.1, format="%.2f")
 
 if st.sidebar.button("Convert"):
-    # Example static rates - replace with API call to your PHP backend if available
     example_rates = {
-        ("INR", "USD"): 0.012,
-        ("USD", "INR"): 82.5,
-        ("EUR", "USD"): 1.1,
-        ("USD", "EUR"): 0.91,
-        ("GBP", "USD"): 1.3,
-        ("USD", "GBP"): 0.77,
-        ("JPY", "USD"): 0.007,
-        ("USD", "JPY"): 140,
-    }
+    # INR to others
+    ("INR", "USD"): 0.012,
+    ("INR", "EUR"): 0.011,
+    ("INR", "GBP"): 0.0098,
+    ("INR", "JPY"): 1.57,
+    ("INR", "AUD"): 0.018,
+    ("INR", "CAD"): 0.016,
+    ("INR", "CNY"): 0.083,
+
+    # Others to INR
+    ("USD", "INR"): 82.5,
+    ("EUR", "INR"): 88.5,
+    ("GBP", "INR"): 102.0,
+    ("JPY", "INR"): 0.64,
+    ("AUD", "INR"): 56.0,
+    ("CAD", "INR"): 61.5,
+    ("CNY", "INR"): 12.0,
+
+    # USD pairs
+    ("EUR", "USD"): 1.1,
+    ("USD", "EUR"): 0.91,
+    ("GBP", "USD"): 1.3,
+    ("USD", "GBP"): 0.77,
+    ("JPY", "USD"): 0.007,
+    ("USD", "JPY"): 140,
+    ("AUD", "USD"): 0.67,
+    ("USD", "AUD"): 1.5,
+    ("CAD", "USD"): 0.74,
+    ("USD", "CAD"): 1.35,
+    ("CNY", "USD"): 0.14,
+    ("USD", "CNY"): 7.1,
+}
 
     rate = example_rates.get((from_currency, to_currency), None)
     if rate:

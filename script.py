@@ -18,7 +18,7 @@ st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 gsheet = connect_sheet()
 
 # --- Get Username from Query Params ---
-query_params = st.experimental_get_query_params()
+query_params = st.query_params
 username = query_params.get("username", [None])[0]
 
 if not username:

@@ -32,19 +32,22 @@ def connect_sheet():
     return client.open_by_key(sheet_key)
 
 
-def load_ex_gsheet(sheet: gspread.Spreadsheet) -> pd.DataFrame:
-    """Loading all expenses records from the main sheet into a DataFrame."""
+def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     ws = sheet.worksheet(SHEET_NAME)
     data = ws.get_all_records()
     df = pd.DataFrame(data)
-    df["Row"] = list(range(2, 2 + len(df)))
+
+    # Filter only this user's expenses
+    df = df[df["Username"] == username].reset_index(drop=True)
+    df["Row"] = list(range(2, 2 + len(df)))  # Row numbers for update/delete
     return df
 
 
-def add_ex_gsheet(sheet: gspread.Spreadsheet, date: str, category: str, description: str, amount: float, location: str) -> None:
+def add_ex_gsheet(sheet: gspread.Spreadsheet, username: str, date: str, category: str, description: str, amount: float, location: str) -> None:
     ws = sheet.worksheet(SHEET_NAME)
-    ws.append_row([date, category, description, float(amount), location])
-    logger.info("Expense added: %s | %s | %s | %.2f | %s", date, category, description, amount, location)
+    ws.append_row([username, date, category, description, float(amount), location])
+    logger.info("Expense added for '%s': %s | %s | %.2f | %s", username, date, category, amount, location)
+
 
 
 def delete_expense(sheet: gspread.Spreadsheet, row_number: int) -> None:
@@ -55,14 +58,14 @@ def delete_expense(sheet: gspread.Spreadsheet, row_number: int) -> None:
     except gspread.exceptions.APIError as e:
         logger.error("Failed to delete row %d: %s", row_number, e)
 
-
-def update_expense(sheet: gspread.Spreadsheet, row_number: int, date: str, category: str, description: str, amount: float, location: str) -> None:
+def update_expense(sheet: gspread.Spreadsheet, row_number: int, username: str, date: str, category: str, description: str, amount: float, location: str) -> None:
     try:
         ws = sheet.worksheet(SHEET_NAME)
-        ws.update(f"A{row_number}", [[date, category, description, float(amount), location]])
-        logger.info("Updated row %d.", row_number)
+        ws.update(f"A{row_number}", [[username, date, category, description, float(amount), location]])
+        logger.info("Updated row %d for user '%s'.", row_number, username)
     except gspread.exceptions.APIError as e:
         logger.error("Failed to update row %d: %s", row_number, e)
+
 
 
 def get_budget_worksheet(sheet: gspread.Spreadsheet) -> gspread.Worksheet:
@@ -73,17 +76,30 @@ def get_budget_worksheet(sheet: gspread.Spreadsheet) -> gspread.Worksheet:
         return sheet.add_worksheet(title=BUDGET_SHEET, rows="1", cols="2")
 
 
-def set_budget(sheet: gspread.Spreadsheet, amount: float) -> None:
+def set_budget(sheet: gspread.Spreadsheet, username: str, amount: float) -> None:
     ws = get_budget_worksheet(sheet)
-    ws.update("A1", [["Budget"]])
-    ws.update("B1", [[float(amount)]])
-    logger.info("Budget set to %.2f.", amount)
+
+    # Check if username already exists
+    records = ws.get_all_records()
+    df = pd.DataFrame(records)
+
+    if username in df["Username"].values:
+        row_idx = df[df["Username"] == username].index[0] + 2  # +2 for header and 1-based index
+        ws.update(f"A{row_idx}:B{row_idx}", [[username, float(amount)]])
+        logger.info("Updated budget for '%s' to %.2f.", username, amount)
+    else:
+        ws.append_row([username, float(amount)])
+        logger.info("Set budget for new user '%s' to %.2f.", username, amount)
 
 
-def get_budget(sheet: gspread.Spreadsheet) -> float:
+
+def get_budget(sheet: gspread.Spreadsheet, username: str) -> float:
     ws = get_budget_worksheet(sheet)
+    records = ws.get_all_records()
+    df = pd.DataFrame(records)
+
     try:
-        return float(ws.acell("B1").value)
-    except (ValueError) as e:
-        logger.warning("Failed to fetch budget: %s. Defaulting to 0.0.", e)
-        return 0
+        return float(df[df['Username'] == username]["Budget"].values[0])
+    except (IndexError, ValueError, KeyError) as e:
+        logger.warning("No budget for '%s': %s. Defaulting to 0.0.", username, e)
+        return 0.0

@@ -72,13 +72,6 @@ if not df.empty:
 
     with tabs[0]:
         st.subheader("📋 All Expenses")
-        st.markdown("""
-            <a href="https://docs.google.com/spreadsheets/d/13cvRo8lk91PWI_cnr7MoGmuabcWmwZqDIEj2-6JXldw/edit#gid=0" target="_blank">
-                <button style="background-color:#4CAF50; color:white; padding:10px 30px; border:none; border-radius:8px; cursor:pointer;">
-                    See Google Sheet
-                </button>
-            </a>
-        """, unsafe_allow_html=True)
         st.dataframe(df)
 
     with tabs[1]:

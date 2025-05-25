@@ -13,16 +13,6 @@ from google_sheets_utils import (
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 gsheet = connect_sheet()
 
-# Get the logged-in user from the URL
-params = st.query_params
-username = params.get("user", ["Guest"])[0]
-
-# Load the data
-df = load_ex_gsheet(gsheet)
-
-# Filter data for logged-in user
-user_data = df[df['username'] == username]
-
 #Budget Input Sidebar
 st.sidebar.header("💰Set A Budget")
 curr_budget = get_budget(gsheet)
@@ -46,8 +36,7 @@ with st.sidebar.form("add_expense"):
 
 #Load Expense Data
 df = load_ex_gsheet(gsheet)
-st.title(f"Welcome, {username} 👋")
-st.dataframe(user_data)
+
 
 st.markdown("📊 Budget Overview")
 

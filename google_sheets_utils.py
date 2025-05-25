@@ -93,17 +93,27 @@ def get_budget_worksheet(sheet: gspread.Spreadsheet) -> gspread.Worksheet:
 def set_budget(sheet: gspread.Spreadsheet, username: str, amount: float) -> None:
     ws = get_budget_worksheet(sheet)
 
-    # Check if username already exists
     records = ws.get_all_records()
     df = pd.DataFrame(records)
 
-    if username in df["username"].values:
-        row_idx = df[df["username"] == username].index[0] + 2  # +2 for header and 1-based index
+    logger.info("Budget sheet columns: %s", df.columns.tolist())
+
+    column_name = "username"  # <-- change this to match your sheet's exact column header
+
+    if df.empty or column_name not in df.columns:
+        # Sheet is empty or column missing — add new entry
+        ws.append_row([username, float(amount)])
+        logger.info("Set budget for new user '%s' to %.2f.", username, amount)
+        return
+
+    if username in df[column_name].values:
+        row_idx = df[df[column_name] == username].index[0] + 2  # +2 because sheet rows start at 1 + header
         ws.update(f"A{row_idx}:B{row_idx}", [[username, float(amount)]])
         logger.info("Updated budget for '%s' to %.2f.", username, amount)
     else:
         ws.append_row([username, float(amount)])
         logger.info("Set budget for new user '%s' to %.2f.", username, amount)
+
 
 
 

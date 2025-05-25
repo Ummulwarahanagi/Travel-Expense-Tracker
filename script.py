@@ -30,7 +30,7 @@ st.title(f"Welcome {username}")
 
 # --- Logout Button ---
 if st.sidebar.button("🚪 Logout"):
-    st.query_params.clear()  # Clears all query params
+    st.experimental_set_query_params()  # Clears all query params
     st.experimental_rerun()
 
 # --- Budget Sidebar ---

@@ -18,7 +18,7 @@ params = st.query_params
 username = params.get("user", ["Guest"])[0]
 
 # Load the data
-df = pd.read_csv("gsheet")
+df = load_ex_gsheet(gsheet)
 
 # Filter data for logged-in user
 user_data = df[df['username'] == username]

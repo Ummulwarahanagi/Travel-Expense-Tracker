@@ -56,7 +56,22 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     df["Row"] = list(range(2, 2 + len(df)))
     return df
 
+def get_user_budget(sheet: gspread.Spreadsheet, username: str) -> float:
+    ws = sheet.worksheet("Budget")
+    records = ws.get_all_records()
+    df = pd.DataFrame(records)
+    
+    # Match column name exactly as in your sheet, e.g. "Username"
+    col_username = "Username"
+    col_budget = "Budget"
+    
+    if df.empty or col_username not in df.columns or col_budget not in df.columns:
+        return 0.0
 
+    user_budget_row = df[df[col_username] == username]
+    if not user_budget_row.empty:
+        return float(user_budget_row[col_budget].values[0])
+    return 0.0
 def add_ex_gsheet(sheet: gspread.Spreadsheet, username: str, date: str, category: str, description: str, amount: float, location: str) -> None:
     ws = sheet.worksheet(SHEET_NAME)
     ws.append_row([username, date, category, description, float(amount), location])

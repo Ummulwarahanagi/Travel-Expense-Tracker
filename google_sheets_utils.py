@@ -37,19 +37,23 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     data = ws.get_all_records()
     df = pd.DataFrame(data)
 
-    # Clean column names
-    df.columns = df.columns.str.strip()
-    logger.info("Columns in DataFrame: %s", df.columns.tolist())
+    # Handle empty dataframe
+    if df.empty:
+        logger.warning("Google Sheet data is empty.")
+        return df
 
-    # Make sure column name is correct here!
-    column_name = "username"  # or "Username" depending on your sheet
+    # Clean column names if string type
+    if len(df.columns) > 0 and all(isinstance(col, str) for col in df.columns):
+        df.columns = df.columns.str.strip()
+        logger.info("Columns in DataFrame: %s", df.columns.tolist())
 
+    column_name = "username"  # or "Username", match your sheet exactly
     if column_name not in df.columns:
         raise KeyError(f"Column '{column_name}' not found in Google Sheet")
 
-    # Filter only this user's expenses
-    df = df[df["username"] == username].reset_index(drop=True)
-    df["Row"] = list(range(2, 2 + len(df)))  # Row numbers for update/delete
+    # Filter user expenses
+    df = df[df[column_name] == username].reset_index(drop=True)
+    df["Row"] = list(range(2, 2 + len(df)))
     return df
 
 

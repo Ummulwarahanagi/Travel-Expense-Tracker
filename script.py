@@ -25,7 +25,7 @@ if not username:
     st.error("No username provided. Please log in via the PHP system or pass ?username=yourname in URL.")
     st.stop()
 
-st.title(f"💼 Travel Expense Tracker for {username}")
+st.title(f"Welcome")
 
 # --- Budget Sidebar ---
 st.sidebar.header("💰 Set Your Budget")

@@ -16,6 +16,8 @@ gsheet = connect_sheet()
 #Budget Input Sidebar
 st.sidebar.header("💰Set A Budget")
 curr_budget = get_budget(gsheet)
+if curr_budget is None or not isinstance(curr_budget, (int, float)):
+    curr_budget = 0.0
 input = st.sidebar.number_input("Budget :", min_value=0.0, value=curr_budget, step=100.0, format="%.2f")
 
 if st.sidebar.button("Update Budget"):

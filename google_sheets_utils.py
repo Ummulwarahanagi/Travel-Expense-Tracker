@@ -38,7 +38,7 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     df = pd.DataFrame(data)
 
     # Filter only this user's expenses
-    df = df[df["Username"] == username].reset_index(drop=True)
+    df = df[df["username"] == username].reset_index(drop=True)
     df["Row"] = list(range(2, 2 + len(df)))  # Row numbers for update/delete
     return df
 

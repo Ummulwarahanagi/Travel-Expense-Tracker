@@ -10,6 +10,7 @@ from google_sheets_utils import (
     set_budget,
     get_budget
 )
+import requests  # for backend API calls if needed
 
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
@@ -26,11 +27,11 @@ if not username:
     st.stop()
 
 st.title(f"Welcome {username}")
+
 # --- Logout Button ---
 if st.sidebar.button("🚪 Logout"):
-    st.query_params.clear() # Clears all query params
-    st.rerun()
-
+    st.query_params.clear()  # Clears all query params
+    st.experimental_rerun()
 
 # --- Budget Sidebar ---
 st.sidebar.header("💰 Set Your Budget")
@@ -57,6 +58,36 @@ with st.sidebar.form("add_expense"):
     if st.form_submit_button("Add"):
         add_ex_gsheet(gsheet, username, str(date), category, description, amount, location)
         st.success("Expense added!")
+
+# --- Currency Converter Sidebar ---
+st.sidebar.header("💱 Currency Converter")
+
+currencies = ["USD", "EUR", "INR", "GBP", "JPY", "AUD", "CAD", "CNY"]
+
+from_currency = st.sidebar.selectbox("From", currencies, index=2)  # Default INR
+to_currency = st.sidebar.selectbox("To", currencies, index=0)      # Default USD
+
+conv_amount = st.sidebar.number_input("Amount", min_value=0.0, value=1.0, step=0.1, format="%.2f")
+
+if st.sidebar.button("Convert"):
+    # Example static rates - replace with API call to your PHP backend if available
+    example_rates = {
+        ("INR", "USD"): 0.012,
+        ("USD", "INR"): 82.5,
+        ("EUR", "USD"): 1.1,
+        ("USD", "EUR"): 0.91,
+        ("GBP", "USD"): 1.3,
+        ("USD", "GBP"): 0.77,
+        ("JPY", "USD"): 0.007,
+        ("USD", "JPY"): 140,
+    }
+
+    rate = example_rates.get((from_currency, to_currency), None)
+    if rate:
+        converted = conv_amount * rate
+        st.sidebar.success(f"{conv_amount:.2f} {from_currency} = {converted:.2f} {to_currency}")
+    else:
+        st.sidebar.error("Currency pair not supported yet.")
 
 # --- Load User Expenses ---
 df = load_ex_gsheet(gsheet, username)

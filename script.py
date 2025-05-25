@@ -19,7 +19,7 @@ gsheet = connect_sheet()
 
 # --- Get Username from Query Params ---
 query_params = st.query_params
-username = query_params.get("username", [None])[0]
+username = query_params.get("username", [None])[1]
 
 if not username:
     st.error("No username provided. Please log in via the PHP system or pass ?username=yourname in URL.")

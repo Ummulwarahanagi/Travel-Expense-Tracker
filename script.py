@@ -26,6 +26,11 @@ if not username:
     st.stop()
 
 st.title(f"Welcome {username}")
+# --- Logout Button ---
+if st.sidebar.button("🚪 Logout"):
+    st.experimental_set_query_params()  # Clears all query params
+    st.rerun()
+
 
 # --- Budget Sidebar ---
 st.sidebar.header("💰 Set Your Budget")

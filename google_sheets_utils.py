@@ -83,8 +83,8 @@ def set_budget(sheet: gspread.Spreadsheet, username: str, amount: float) -> None
     records = ws.get_all_records()
     df = pd.DataFrame(records)
 
-    if username in df["Username"].values:
-        row_idx = df[df["Username"] == username].index[0] + 2  # +2 for header and 1-based index
+    if username in df["username"].values:
+        row_idx = df[df["username"] == username].index[0] + 2  # +2 for header and 1-based index
         ws.update(f"A{row_idx}:B{row_idx}", [[username, float(amount)]])
         logger.info("Updated budget for '%s' to %.2f.", username, amount)
     else:
@@ -99,7 +99,7 @@ def get_budget(sheet: gspread.Spreadsheet, username: str) -> float:
     df = pd.DataFrame(records)
 
     try:
-        return float(df[df['Username'] == username]["Budget"].values[0])
+        return float(df[df['username'] == username]["Budget"].values[0])
     except (IndexError, ValueError, KeyError) as e:
         logger.warning("No budget for '%s': %s. Defaulting to 0.0.", username, e)
         return 0.0

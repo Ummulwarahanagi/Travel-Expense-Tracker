@@ -28,7 +28,7 @@ if not username:
 st.title(f"Welcome {username}")
 # --- Logout Button ---
 if st.sidebar.button("🚪 Logout"):
-    st.query_params  # Clears all query params
+    st.query_params.clear() # Clears all query params
     st.rerun()
 
 

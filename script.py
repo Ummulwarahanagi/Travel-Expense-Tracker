@@ -23,13 +23,13 @@ query_params = st.query_params
 username = query_params.get("username", None)
 
 if not username:
-    st.error("No username provided. Please log in via the PHP system or pass ?username=yourname in URL.")
+    st.error("Logged Out")
     st.stop()
 
 st.title(f"Welcome {username}")
 
 # --- Logout Button ---
-if st.sidebar.button("🚪 Logout"):
+if st.sidebar.button("Logout"):
     st.query_params.clear()  # Clears all query params
     st.rerun()
 

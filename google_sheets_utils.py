@@ -37,12 +37,12 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     data = ws.get_all_records()
     df = pd.DataFrame(data)
 
-    # Handle empty dataframe
+ 
     if df.empty:
         logger.warning("Google Sheet data is empty.")
         return df
 
-    # Clean column names if string type
+   
     if len(df.columns) > 0 and all(isinstance(col, str) for col in df.columns):
         df.columns = df.columns.str.strip()
         logger.info("Columns in DataFrame: %s", df.columns.tolist())
@@ -61,7 +61,7 @@ def get_user_budget(sheet: gspread.Spreadsheet, username: str) -> float:
     records = ws.get_all_records()
     df = pd.DataFrame(records)
     
-    # Match column name exactly as in your sheet, e.g. "Username"
+    # Match column name e, e.g. "Username"
     col_username = "Username"
     col_budget = "Budget"
     

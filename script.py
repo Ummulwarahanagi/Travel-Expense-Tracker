@@ -31,7 +31,7 @@ st.title(f"Welcome {username}")
 # --- Logout Button ---
 if st.sidebar.button("🚪 Logout"):
     st.query_params.clear()  # Clears all query params
-    st.experimental_rerun()
+    st.rerun()
 
 # --- Budget Sidebar ---
 st.sidebar.header("💰 Set Your Budget")
@@ -60,7 +60,7 @@ with st.sidebar.form("add_expense"):
         st.success("Expense added!")
 
 # --- Currency Converter Sidebar ---
-st.sidebar.header("💱 Currency Converter")
+st.sidebar.header("Currency Converter")
 
 currencies = ["USD", "EUR", "INR", "GBP", "JPY", "AUD", "CAD", "CNY"]
 

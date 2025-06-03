@@ -33,15 +33,6 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     ws = sheet.worksheet(SHEET_NAME)
     raw_data = ws.get_all_values()
 
-    import streamlit as st
-    st.write("🧪 Raw data from sheet:", raw_data)
-
-    if not raw_data:
-        raise ValueError("Sheet is completely empty.")
-
-    # Extract and normalize headers
-    header = [h.strip().lower() for h in raw_data[0]]
-    st.write("🧪 Extracted header:", header)
 
     data_rows = raw_data[1:]
     if not data_rows:
@@ -50,8 +41,6 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
         st.warning("No expenses found yet for any user.")
     else:
         df = pd.DataFrame(data_rows, columns=header)
-
-    st.write("🧪 DataFrame preview:", df.head())
 
     if "username" not in df.columns:
         raise ValueError(f"❌ Could not find a 'username' column. Found: {df.columns.tolist()}")

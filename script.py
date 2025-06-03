@@ -18,7 +18,7 @@ st.sidebar.header("Set A Budget")
 curr_budget = get_budget(gsheet)
 input = st.sidebar.number_input("Budget :", min_value=0.0, value=curr_budget, step=100.0, format="%.2f")
 
-  if st.sidebar.button("Update Budget"):
+if st.sidebar.button("Update Budget"):
     set_budget(gsheet, input)
    st.sidebar.success("Budget updated successfully")
 

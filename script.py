@@ -117,7 +117,7 @@ if not df.empty:
 
     with tabs[1]:
        st.subheader("📌 Category Breakdown")
-       cat_df = df.groupby("Category")["Amount].sum().reset_index()
+       cat_df = df.groupby("Category")["Amount"].sum().reset_index()
        st.bar_chart(cat_df.set_index("Category"))
 
        if curr_budget > 0:

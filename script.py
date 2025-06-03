@@ -14,7 +14,8 @@ st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 
 gsheet = connect_sheet()
 query_params = st.experimental_get_query_params()
-username = query_params.get("username", [None])[0]
+username_list = query_params.get("username")
+username = username_list[0] if username_list else None
 
 if not username:
     st.error("Logged Out")

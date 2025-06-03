@@ -94,7 +94,7 @@ df = load_ex_gsheet(gsheet)
 params = st.query_params
 user = params.get("username", ["Guest"])[0]
 
-st.title(f"Welcome {user}")
+
 st.markdown("Budget Overview")
 
 if not df.empty:

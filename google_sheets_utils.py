@@ -34,13 +34,11 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     data = ws.get_all_records()
     df = pd.DataFrame(data)
 
-    print("Columns from sheet:", df.columns.tolist())  # Debug output
     # or use logging
     # logger.info("Columns from sheet: %s", df.columns.tolist())
 
     # Normalize columns: strip spaces and lowercase
     df.columns = [col.strip().lower() for col in df.columns]
-    st.write("Normalized columns:", df.columns.tolist())
 
     if "username" not in df.columns:
         raise ValueError("Column 'username' not found in the sheet.")

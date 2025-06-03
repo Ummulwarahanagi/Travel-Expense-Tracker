@@ -142,8 +142,9 @@ if not df.empty:
         st.dataframe(summary[["Category", "Amount", "% Used", "Status"]])
 
    with tabs[2]:
-    st.subheader("🗑️ Delete Expense")
-    with st.expander("Delete an expense (enter the row number):"):
+       
+      st.subheader("🗑️ Delete Expense")
+      with st.expander("Delete an expense (enter the row number):"):
         if not df.empty and "Row" in df.columns:
             max_row = int(df["Row"].max())
             delete_row = st.number_input("Row Number", min_value=2, max_value=max_row, step=1)

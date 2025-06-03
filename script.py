@@ -26,6 +26,7 @@ if st.sidebar.button("Logout"):
     st.experimental_set_query_params()
     st.experimental_rerun()
 
+# Sidebar - Budget section
 st.sidebar.header("Set Your Budget")
 curr_budget = get_budget(gsheet, username) or 0.0
 budget_input = st.sidebar.number_input("Budget :", min_value=0.0, value=curr_budget, step=100.0, format="%.2f")
@@ -33,6 +34,7 @@ if st.sidebar.button("Update Budget"):
     set_budget(gsheet, username, budget_input)
     st.sidebar.success("Budget updated!")
 
+# Sidebar - Add Expense Form
 st.sidebar.header("Add Expense")
 with st.sidebar.form("add_expense"):
     date = st.date_input("Date")
@@ -40,38 +42,45 @@ with st.sidebar.form("add_expense"):
     description = st.text_input("Description")
     amount = st.number_input("Amount", min_value=0.0, format="%.2f")
     location = st.text_input("Location")
+    trip = st.text_input("Trip Name")  # ✅ NEW FIELD
+
     if st.form_submit_button("Add"):
-        add_ex_gsheet(gsheet, username, str(date), category, description, amount, location)
+        add_ex_gsheet(gsheet, username, str(date), category, description, amount, location, trip)
         st.success("Expense added!")
 
+# Load Data
 df = load_ex_gsheet(gsheet, username)
 
+# Sidebar - Filter by Trip & Date
+if not df.empty:
+    st.sidebar.markdown("### 🔍 Filter Expenses")
+    
+    trip_names = df["Trip"].dropna().unique().tolist()
+    selected_trip = st.sidebar.selectbox("Select Trip", ["All"] + trip_names)
+    
+    df["Date"] = pd.to_datetime(df["Date"])
+    min_date, max_date = df["Date"].min(), df["Date"].max()
+    date_range = st.sidebar.date_input("Date Range", [min_date, max_date])
+
+    if selected_trip != "All":
+        df = df[df["Trip"] == selected_trip]
+
+    df = df[(df["Date"] >= pd.to_datetime(date_range[0])) & (df["Date"] <= pd.to_datetime(date_range[1]))]
+
+# Budget Overview Section
 st.markdown("## Budget Overview")
 
 if not df.empty:
     total_spend = df["Amount"].sum()
     remained_budget = curr_budget - total_spend
 
-    # Colored metrics based on budget status
+    if selected_trip != "All":
+        st.markdown(f"### 📌 Viewing Trip: `{selected_trip}`")
+
     col1, col2, col3 = st.columns(3)
-    col1.metric(
-        "Total Budget", 
-        f"₹{curr_budget:,.2f}",
-        delta=None,
-        delta_color="normal"
-    )
-    col2.metric(
-        "Total Spend", 
-        f"₹{total_spend:,.2f}",
-        delta=None,
-        delta_color="inverse" if total_spend > curr_budget else "normal"
-    )
-    col3.metric(
-        "Remaining Amount", 
-        f"₹{remained_budget:,.2f}",
-        delta=None,
-        delta_color="inverse" if remained_budget < curr_budget * 0.2 else "normal"
-    )
+    col1.metric("Total Budget", f"₹{curr_budget:,.2f}")
+    col2.metric("Total Spend", f"₹{total_spend:,.2f}", delta_color="inverse" if total_spend > curr_budget else "normal")
+    col3.metric("Remaining Amount", f"₹{remained_budget:,.2f}", delta_color="inverse" if remained_budget < curr_budget * 0.2 else "normal")
 
     tabs = st.tabs(["📋 All Expenses", "📌 Category Breakdown", "🛠️ Manage Expense"])
 
@@ -90,10 +99,9 @@ if not df.empty:
 
     with tabs[2]:
         st.subheader("🛠️ Manage Expense")
-
         st.markdown("### 🗑️ Delete Expense")
         with st.expander("Delete an expense (enter the row number):"):
-            if not df.empty and "Row" in df.columns:
+            if "Row" in df.columns:
                 max_row = int(df["Row"].max())
                 delete_row = st.number_input("Row Number", min_value=2, max_value=max_row, step=1)
                 if st.button("Delete"):
@@ -105,7 +113,7 @@ if not df.empty:
 
         st.markdown("### ✏️ Update Expense")
         with st.expander("Update an expense"):
-            if not df.empty and "Row" in df.columns:
+            if "Row" in df.columns:
                 update_row = st.number_input("Row to Update", min_value=2, max_value=int(df["Row"].max()), step=1)
                 with st.form("update_expense"):
                     u_date = st.date_input("Date", key="u_date")
@@ -113,20 +121,20 @@ if not df.empty:
                     u_desc = st.text_input("Description", key="u_desc")
                     u_amt = st.number_input("Amount", min_value=0.0, format="%.2f", key="u_amt")
                     u_loc = st.text_input("Location", key="u_loc")
+                    u_trip = st.text_input("Trip Name", key="u_trip")  # ✅ Add to update logic
                     if st.form_submit_button("Update"):
-                        update_expense(gsheet, int(update_row), username, str(u_date), u_cat, u_desc, u_amt, u_loc)
+                        update_expense(gsheet, int(update_row), username, str(u_date), u_cat, u_desc, u_amt, u_loc, u_trip)
                         st.success(f"Updated expense in row {int(update_row)}")
                         st.experimental_rerun()
             else:
                 st.warning("No data available to update.")
 
-    # --- Smart Spend Insights ---
+    # Smart Spend Insights Section
     st.markdown("---")
     st.subheader("💡 Smart Spend Insights")
 
     def generate_insights(df, budget):
         insights = []
-
         if df.empty:
             return [("No insights available. Add some expenses first.", "info")]
 
@@ -162,15 +170,11 @@ if not df.empty:
             "success": "background-color:#ddffdd; color:#207520; border-left:6px solid #207520; padding:10px; margin-bottom:10px; border-radius:5px;",
             "info": "background-color:#e7f3fe; color:#31708f; border-left:6px solid #31708f; padding:10px; margin-bottom:10px; border-radius:5px;",
         }
-        style = styles.get(style_type, styles["info"])
-        return f'<div style="{style}">{message}</div>'
+        return f'<div style="{styles.get(style_type, styles["info"])}">{message}</div>'
 
     insights = generate_insights(df, curr_budget)
-    if insights:
-        for message, style_type in insights:
-            st.markdown(styled_message(message, style_type), unsafe_allow_html=True)
-    else:
-        st.info("No insights available yet. Add some expenses.")
+    for message, style_type in insights:
+        st.markdown(styled_message(message, style_type), unsafe_allow_html=True)
 
 else:
     st.info("No expenses added yet. Use the sidebar to start tracking your expenses.")

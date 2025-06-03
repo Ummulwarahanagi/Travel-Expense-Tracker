@@ -15,8 +15,22 @@ gsheet = connect_sheet()
 
 #Budget Input Sidebar
 st.sidebar.header("Set A Budget")
+
 curr_budget = get_budget(gsheet)
-input = st.sidebar.number_input("Budget :", min_value=0.0, value=curr_budget, step=100.0, format="%.2f")
+
+try:
+    curr_budget = float(curr_budget)
+except (TypeError, ValueError):
+    curr_budget = 0.0  # default budget if conversion fails
+
+budget_input = st.sidebar.number_input(
+    "Budget :",
+    min_value=0.0,
+    value=curr_budget,
+    step=100.0,
+    format="%.2f"
+)
+
 
 if st.sidebar.button("Update Budget"):
     set_budget(gsheet, input)

@@ -36,7 +36,7 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     df = pd.DataFrame(data)
 
     # Filter by username
-    df = df[df["Username"] == username]
+    df = df[df["username"] == username]
 
     # Add row number for updates/deletes
     df["Row"] = list(range(2, 2 + len(df)))

@@ -9,69 +9,144 @@ from google_sheets_utils import (
     set_budget,
     get_budget
 )
-import requests
 
-# --- Streamlit Page Config ---
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 
-# --- Custom CSS for color & style ---
+# --- Advanced CSS for vivid colors and animations ---
 st.markdown("""
 <style>
-    .insight-box {
-        background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
-        border-radius: 12px;
-        padding: 15px 20px;
-        margin-bottom: 12px;
-        color: white;
-        font-weight: 600;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    /* Gradient background for whole page */
+    .main {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 20px 30px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
+
+    /* Budget Metrics with gradient text and shadow */
     .budget-metric {
-        background-color: #f0f2f6;
-        border-radius: 10px;
-        padding: 15px;
+        background: white;
+        border-radius: 14px;
+        padding: 20px 15px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
         text-align: center;
-        box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        cursor: default;
+        user-select: none;
     }
-    .category-bar {
-        margin-top: 15px;
-        margin-bottom: 15px;
+    .budget-metric:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.2);
     }
+    .budget-metric h3 {
+        font-weight: 700;
+        color: #222222;
+        margin-bottom: 8px;
+    }
+    .budget-value {
+        font-size: 2.6rem;
+        font-weight: 900;
+        background: linear-gradient(90deg, #00c6ff, #0072ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        user-select: text;
+    }
+
+    /* Insight Boxes with stronger colored borders & glowing effect */
+    .insight-box {
+        background: white;
+        border-left: 8px solid;
+        border-radius: 14px;
+        padding: 18px 24px;
+        margin-bottom: 14px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        user-select: none;
+        transition: box-shadow 0.4s ease;
+    }
+    .insight-box:hover {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.18);
+    }
+    .insight-icon {
+        font-size: 1.8rem;
+        flex-shrink: 0;
+    }
+
+    /* Colored borders & glowing shadows for categories */
+    .insight-high {
+        border-color: #e63946;
+        box-shadow: 0 0 12px #e63946aa;
+        color: #e63946;
+    }
+    .insight-warning {
+        border-color: #f4a261;
+        box-shadow: 0 0 12px #f4a261aa;
+        color: #f4a261;
+    }
+    .insight-info {
+        border-color: #2a9d8f;
+        box-shadow: 0 0 12px #2a9d8faa;
+        color: #2a9d8f;
+    }
+    .insight-success {
+        border-color: #43a047;
+        box-shadow: 0 0 12px #43a047aa;
+        color: #43a047;
+    }
+    .insight-neutral {
+        border-color: #264653;
+        box-shadow: 0 0 12px #264653aa;
+        color: #264653;
+    }
+
+    /* Category badges for breakdown table */
+    .category-badge {
+        padding: 6px 14px;
+        border-radius: 16px;
+        color: white;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-align: center;
+        display: inline-block;
+        user-select: none;
+    }
+    .badge-Flights { background-color: #0077b6; }
+    .badge-Hotels { background-color: #0096c7; }
+    .badge-Food { background-color: #f77f00; }
+    .badge-Transport { background-color: #2a9d8f; }
+    .badge-Miscellaneous { background-color: #6a4c93; }
+
 </style>
 """, unsafe_allow_html=True)
 
-# --- Connect to Google Sheet ---
 gsheet = connect_sheet()
-
-# --- Get Username from Query Params ---
-query_params = st.query_params
-username = query_params.get("username", None)
+query_params = st.experimental_get_query_params()
+username = query_params.get("username", [None])[0]
 
 if not username:
     st.error("Logged Out")
     st.stop()
 
+st.markdown('<div class="main">', unsafe_allow_html=True)
 st.title(f"👋 Welcome {username}")
 
-# --- Logout Button ---
 if st.sidebar.button("Logout"):
-    st.query_params.clear()
-    st.rerun()
+    st.experimental_set_query_params()
+    st.experimental_rerun()
 
-# --- Budget Sidebar ---
+# Budget Sidebar
 st.sidebar.header("💰 Set Your Budget")
-
-curr_budget = get_budget(gsheet, username)
-if curr_budget is None or not isinstance(curr_budget, (int, float)):
-    curr_budget = 0.0
-
+curr_budget = get_budget(gsheet, username) or 0.0
 budget_input = st.sidebar.number_input("Budget :", min_value=0.0, value=curr_budget, step=100.0, format="%.2f")
-
 if st.sidebar.button("Update Budget"):
     set_budget(gsheet, username, budget_input)
-    st.sidebar.success("Budget updated successfully")
+    st.sidebar.success("Budget updated!")
 
-# --- Add Expense Sidebar ---
+# Add Expense Sidebar
 st.sidebar.header("➕ Add Expense")
 with st.sidebar.form("add_expense"):
     date = st.date_input("Date")
@@ -79,144 +154,70 @@ with st.sidebar.form("add_expense"):
     description = st.text_input("Description")
     amount = st.number_input("Amount", min_value=0.0, format="%.2f")
     location = st.text_input("Location")
-
     if st.form_submit_button("Add"):
         add_ex_gsheet(gsheet, username, str(date), category, description, amount, location)
         st.success("Expense added!")
 
-# --- Currency Converter Sidebar ---
-st.sidebar.header("Currency Converter")
-currencies = ["USD", "EUR", "INR", "GBP", "JPY", "AUD", "CAD", "CNY"]
-
-from_currency = st.sidebar.selectbox("From", currencies, index=2)
-to_currency = st.sidebar.selectbox("To", currencies, index=0)
-conv_amount = st.sidebar.number_input("Amount", min_value=0.0, value=1.0, step=0.1, format="%.2f")
-
-if st.sidebar.button("Convert"):
-    example_rates = {
-        ("INR", "USD"): 0.012, ("INR", "EUR"): 0.011, ("INR", "GBP"): 0.0098,
-        ("INR", "JPY"): 1.57, ("INR", "AUD"): 0.018, ("INR", "CAD"): 0.016, ("INR", "CNY"): 0.083,
-        ("USD", "INR"): 82.5, ("EUR", "INR"): 88.5, ("GBP", "INR"): 102.0,
-        ("JPY", "INR"): 0.64, ("AUD", "INR"): 56.0, ("CAD", "INR"): 61.5, ("CNY", "INR"): 12.0,
-        ("EUR", "USD"): 1.1, ("USD", "EUR"): 0.91, ("GBP", "USD"): 1.3,
-        ("USD", "GBP"): 0.77, ("JPY", "USD"): 0.007, ("USD", "JPY"): 140,
-        ("AUD", "USD"): 0.67, ("USD", "AUD"): 1.5, ("CAD", "USD"): 0.74,
-        ("USD", "CAD"): 1.35, ("CNY", "USD"): 0.14, ("USD", "CNY"): 7.1,
-    }
-
-    rate = example_rates.get((from_currency, to_currency), None)
-    if rate:
-        converted = conv_amount * rate
-        st.sidebar.success(f"{conv_amount:.2f} {from_currency} = {converted:.2f} {to_currency}")
-    else:
-        st.sidebar.error("Currency pair not supported yet.")
-
-# --- Load User Expenses ---
 df = load_ex_gsheet(gsheet, username)
 
-# --- Budget Overview Section ---
+# Budget Overview
 st.markdown("📊 **Budget Overview**")
-
 if not df.empty:
     total_spend = df["Amount"].sum()
     remained_budget = curr_budget - total_spend
-
     col1, col2, col3 = st.columns(3)
-    col1.markdown(f'<div class="budget-metric"><h3>Total Budget</h3><p style="font-size:24px;color:#4B6CB7;">₹{curr_budget:,.2f}</p></div>', unsafe_allow_html=True)
-    col2.markdown(f'<div class="budget-metric"><h3>Total Spend</h3><p style="font-size:24px;color:#FF4B4B;">₹{total_spend:,.2f}</p></div>', unsafe_allow_html=True)
-    col3.markdown(f'<div class="budget-metric"><h3>Remaining Amount</h3><p style="font-size:24px;color:#38A169;">₹{remained_budget:,.2f}</p></div>', unsafe_allow_html=True)
+    col1.markdown(f'<div class="budget-metric"><h3>Total Budget</h3><div class="budget-value">₹{curr_budget:,.2f}</div></div>', unsafe_allow_html=True)
+    col2.markdown(f'<div class="budget-metric"><h3>Total Spend</h3><div class="budget-value" style="background: linear-gradient(90deg, #ff416c, #ff4b2b);">₹{total_spend:,.2f}</div></div>', unsafe_allow_html=True)
+    col3.markdown(f'<div class="budget-metric"><h3>Remaining Amount</h3><div class="budget-value" style="background: linear-gradient(90deg, #43cea2, #185a9d);">₹{remained_budget:,.2f}</div></div>', unsafe_allow_html=True)
 
-    tabs = st.tabs(["📋 All Expenses", "📌 Category Breakdown", "🛠️ Manage Expense"])
+    # Category Breakdown with badges
+    st.subheader("📌 Category Breakdown")
+    summary = df.groupby("Category")["Amount"].sum().reset_index()
+    summary["Badge"] = summary["Category"].apply(lambda x: f'<span class="category-badge badge-{x}">{x}</span>')
+    st.markdown(summary.to_html(escape=False, columns=["Badge", "Amount"], index=False), unsafe_allow_html=True)
+    st.bar_chart(summary.set_index("Category")["Amount"])
 
-    with tabs[0]:
-        st.subheader("📋 All Expenses")
-        st.dataframe(df)
-
-    with tabs[1]:
-        st.subheader("📌 Category Breakdown")
-        summary = df.groupby("Category")["Amount"].sum().reset_index()
-        st.bar_chart(summary, x="Category", y="Amount")
-
-        summary["% Used"] = (summary["Amount"] / curr_budget * 100).round(2)
-        summary["Status"] = summary["% Used"].apply(lambda x: "✅ OK" if x <= 30 else "⚠️ High")
-        st.dataframe(summary[["Category", "Amount", "% Used", "Status"]])
-
-    with tabs[2]:
-        st.subheader("🛠️ Manage Expense")
-
-        st.markdown("### 🗑️ Delete Expense")
-        with st.expander("Delete an expense (enter the row number):"):
-            if not df.empty and "Row" in df.columns:
-                max_row = int(df["Row"].max())
-                delete_row = st.number_input("Row Number", min_value=2, max_value=max_row, step=1)
-                if st.button("Delete"):
-                    delete_expense(gsheet, int(delete_row))
-                    st.success(f"Deleted row: {int(delete_row)}")
-                    st.rerun()
-            else:
-                st.warning("No data available to delete.")
-
-        st.markdown("### ✏️ Update Expense")
-        with st.expander("Update an expense"):
-            if not df.empty and "Row" in df.columns:
-                update_row = st.number_input("Row to Update", min_value=2, max_value=int(df["Row"].max()), step=1)
-                with st.form("update_expense"):
-                    u_date = st.date_input("Date", key="u_date")
-                    u_cat = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"], key="u_cat")
-                    u_desc = st.text_input("Description", key="u_desc")
-                    u_amt = st.number_input("Amount", min_value=0.0, format="%.2f", key="u_amt")
-                    u_loc = st.text_input("Location", key="u_loc")
-                    if st.form_submit_button("Update"):
-                        update_expense(gsheet, int(update_row), username, str(u_date), u_cat, u_desc, u_amt, u_loc)
-                        st.success(f"Updated expense in row {int(update_row)}")
-                        st.experimental_rerun()
-            else:
-                st.warning("No data available to update.")
-
-    # --- Smart Spend Insights ---
+    # Smart Spend Insights
     st.markdown("---")
     st.subheader("💡 Smart Spend Insights")
 
     def generate_insights(df, budget):
         insights = []
-
         if df.empty:
-            return ["No insights available. Add some expenses first."]
+            return [("ℹ️", "No expenses yet. Add some to get insights.", "insight-neutral")]
 
         total_spent = df["Amount"].sum()
         daily_avg = df.groupby("Date")["Amount"].sum().mean()
 
         if total_spent > budget:
-            insights.append(("🚨", "You’ve exceeded your total budget. Consider reviewing high-expense categories.", "#ff4b4b"))
+            insights.append(("🚨", "You’ve exceeded your total budget. Review your high-expense categories!", "insight-high"))
         elif budget - total_spent < budget * 0.2:
-            insights.append(("⚠️", "You're close to exhausting your budget. Plan remaining days carefully.", "#ffa500"))
+            insights.append(("⚠️", "You're close to exhausting your budget. Plan carefully!", "insight-warning"))
 
         food_exp = df[df["Category"] == "Food"]["Amount"].sum()
         if food_exp > total_spent * 0.3:
-            insights.append(("🍽️", "High food expenses — try exploring cheaper local dining options.", "#f9a825"))
+            insights.append(("🍽️", "High food expenses — try exploring cheaper local dining.", "insight-warning"))
 
         hotel_exp = df[df["Category"] == "Hotels"]["Amount"].sum()
         if hotel_exp > total_spent * 0.4:
-            insights.append(("🏨", "Hotels are taking a big chunk — check for cheaper stays next time.", "#1e88e5"))
+            insights.append(("🏨", "Hotels are a big chunk — check for budget stays.", "insight-high"))
 
         transport_exp = df[df["Category"] == "Transport"]["Amount"].sum()
         if transport_exp < total_spent * 0.1:
-            insights.append(("🚗", "Nice! You’re saving on transport. Keep it up!", "#43a047"))
+            insights.append(("🚗", "Great! Saving on transport expenses.", "insight-success"))
 
         if daily_avg > budget / 10:
-            insights.append(("📈", f"Your average daily spend is ₹{daily_avg:.2f} — adjust to stay on track.", "#6a1b9a"))
+            insights.append(("📈", f"Average daily spend ₹{daily_avg:.2f} — adjust to stay on track.", "insight-info"))
 
         return insights
 
     insights = generate_insights(df, curr_budget)
-    if insights:
-        for icon, tip, color in insights:
-            st.markdown(f'<div class="insight-box" style="border-left: 6px solid {color};">{icon} {tip}</div>', unsafe_allow_html=True)
-    else:
-        st.info("No insights available yet. Add some expenses.")
-
+    for icon, tip, style in insights:
+        st.markdown(f'<div class="insight-box {style}"><span class="insight-icon">{icon}</span>{tip}</div>', unsafe_allow_html=True)
 else:
     st.info("No expenses added yet. Use the sidebar to start tracking your expenses.")
     st.markdown("---")
     st.subheader("💡 Smart Spend Insights")
     st.info("No insights available yet. Add some expenses to see tips here.")
+
+st.markdown("</div>", unsafe_allow_html=True)

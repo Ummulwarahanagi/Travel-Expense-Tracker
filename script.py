@@ -120,7 +120,7 @@ if not df.empty:
 
     with tabs[0]:
         st.subheader("📋 All Expenses")
-        st.dataframe(df[["Date", "Category", "Description", "Amount", "Currency", "INR Amount", "Location", "Trip"]])
+        st.dataframe(df[["Date", "Category", "Description", "Amount", "Currency", "INR Amount", "Location", "Trip","Row"]])
 
     with tabs[1]:
        st.subheader("📌 Category Breakdown")
@@ -145,7 +145,7 @@ if not df.empty:
                 if st.button("Delete Expense"):
                     delete_expense(gsheet, int(del_row))
                     st.success(f"Deleted row {int(del_row)}")
-                    st.experimental_rerun()
+                    st.rerun()
             else:
                 st.info("No expense data available to delete.")
 

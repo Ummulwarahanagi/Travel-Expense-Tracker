@@ -11,6 +11,17 @@ from google_sheets_utils import (
 
 )
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
+# Initialize current_trip in session state if not already set
+if "current_trip" not in st.session_state:
+    st.session_state.current_trip = "General"
+
+# Trip selector in sidebar
+current_trip = st.sidebar.selectbox(
+    "Select Active Trip",
+    options=["General", "Trip A", "Trip B"],  # Replace with your dynamic trip list if needed
+    index=0,
+    key="current_trip"
+)
 gsheet = connect_sheet()
 
 # --- Get Username from Query Params ---
@@ -58,7 +69,7 @@ with st.sidebar.form("add_expense"):
     amount = st.number_input("Amount", min_value=0.0, format="%.2f")
     location = st.text_input("Location")
     if st.form_submit_button("Add"):
-        add_ex_gsheet(gsheet,username, str(date), category, description, amount, location)
+        add_expense_with_trip(gsheet, username, str(date), category, description, amount, location, trip=current_trip)
         st.success("Expense added!")
 
 st.sidebar.header("Currency Converter")
@@ -89,7 +100,8 @@ if st.sidebar.button("Convert"):
 
 
 #Load Expense Data
-df = load_ex_gsheet(gsheet,username)
+df = load_expenses_with_trip(gsheet, username, trip=current_trip)
+
 
 params = st.query_params
 user = params.get("username", ["Guest"])[0]
@@ -145,7 +157,7 @@ if not df.empty:
                 u_amt = st.number_input("Amount", min_value=0.0, format="%.2f", key="u_amt")
                 u_loc = st.text_input("Location", key="u_loc")
                 if st.form_submit_button("Update"):
-                    update_expense(gsheet, int(update_row), str(u_date), u_cat, u_desc, u_amt, u_loc)
+                    update_expense_with_trip(gsheet, int(update_row), str(u_date), u_cat, u_desc, u_amt, u_loc, trip=current_trip)
                     st.success(f"Updated expense {int(update_row)}.")
 
 else:

@@ -20,7 +20,7 @@ input = st.sidebar.number_input("Budget :", min_value=0.0, value=curr_budget, st
 
 if st.sidebar.button("Update Budget"):
     set_budget(gsheet, input)
-   st.sidebar.success("Budget updated successfully")
+    st.sidebar.success("Budget updated successfully")
 
 #Expense Add Form Sidebar
 st.sidebar.header("➕ Add Expense")

@@ -99,7 +99,7 @@ st.markdown("Budget Overview")
 
 if not df.empty:
     # Convert 'Amount' column to numeric, replace invalid with 0
-    df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce").fillna(0)
+    df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
 
 
     total_spend = df["Amount"].sum()

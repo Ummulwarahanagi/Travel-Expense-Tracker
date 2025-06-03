@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from google_sheet_utils import (
+from google_sheets_utils import (
    connect_sheet,
    add_ex_gsheet,
    load_ex_gsheet,

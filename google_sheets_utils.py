@@ -29,18 +29,26 @@ def connect_sheet():
     logger.info("Successfully connected to the Google Sheet.")
     return client.open_by_key(sheet_key)
 
-def load_ex_gsheet(sheet: gspread.Spreadsheet) -> pd.DataFrame:
-    """Loading all expenses records from the main sheet into a DataFrame."""
+def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
+    """Load expenses only for the logged-in user."""
     ws = sheet.worksheet(SHEET_NAME)
     data = ws.get_all_records()
     df = pd.DataFrame(data)
+
+    # Filter by username
+    df = df[df["Username"] == username]
+
+    # Add row number for updates/deletes
     df["Row"] = list(range(2, 2 + len(df)))
+
     return df
 
-def add_ex_gsheet(sheet: gspread.Spreadsheet, date: str, category: str, description: str, amount: float, location: str) -> None:
+
+def add_ex_gsheet(sheet: gspread.Spreadsheet, username: str, date: str, category: str, description: str, amount: float, location: str) -> None:
     ws = sheet.worksheet(SHEET_NAME)
-    ws.append_row([date, category, description, float(amount), location])
-    logger.info("Expense added: %s | %s | %s | %.2f | %s", date, category, description, amount, location)
+    ws.append_row([username, date, category, description, float(amount), location])
+    logger.info("Expense added: %s | %s | %s | %.2f | %s | %s", username, date, category, description, amount, location)
+
 
 def delete_expense(sheet: gspread.Spreadsheet, row_number: int) -> None:
     try:
@@ -65,17 +73,25 @@ def get_budget_worksheet(sheet: gspread.Spreadsheet) -> gspread.Worksheet:
         logger.warning("Budget sheet not found. Creating new one.")
         return sheet.add_worksheet(title=BUDGET_SHEET, rows="1", cols="2")
 
-def set_budget(sheet: gspread.Spreadsheet, amount: float) -> None:
+def set_budget(sheet: gspread.Spreadsheet, username: str, amount: float) -> None:
     ws = get_budget_worksheet(sheet)
-    ws.update("A1", [["Budget"]])
-    ws.update("B1", [[float(amount)]])
-    logger.info("Budget set to %.2f.", amount)
+    data = ws.get_all_records()
+    for idx, row in enumerate(data, start=2):
+        if row["Username"] == username:
+            ws.update(f"B{idx}", [[float(amount)]])
+            return
+    # If not found, append new row
+    ws.append_row([username, float(amount)])
 
-def get_budget(sheet: gspread.Spreadsheet) -> float:
+
+def get_budget(sheet: gspread.Spreadsheet, username: str) -> float:
     ws = get_budget_worksheet(sheet)
-    try:
-        return float(ws.acell("B1").value)
-    except (ValueError) as e:
-        logger.warning("Failed to fetch budget: %s. Defaulting to 0.0.", e)
-        return 0
+    data = ws.get_all_records()
+    for row in data:
+        if row["Username"] == username:
+            try:
+                return float(row["Budget"])
+            except ValueError:
+                return 0.0
+    return 0.0  # default if not found
  

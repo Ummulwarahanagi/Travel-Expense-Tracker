@@ -81,7 +81,7 @@ def get_user_budget(sheet: gspread.Spreadsheet, username: str) -> float:
 def add_ex_gsheet(sheet: gspread.Spreadsheet, username: str, date: str, category: str, description: str,
                   amount: float, location: str,currency: str, inr_amount: float) -> None:
     ws = sheet.worksheet(SHEET_NAME)
-    ws.append_row([username, date, category, description, float(amount), location, trip, currency, float(inr_amount)])
+    ws.append_row([username, date, category, description, float(amount), location,currency, float(inr_amount)])
     logger.info(
         "Expense added for '%s': %s | %s | %.2f %s | %s | %s | %.2f INR",
         username, date, category, amount, currency, location, inr_amount

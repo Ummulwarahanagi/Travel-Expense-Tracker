@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
 from google_sheets_utils import (
-   connect_sheet,
-   add_ex_gsheet,
-   load_ex_gsheet,
-   delete_expense,
-   update_expense,
-   set_budget,
-   get_budget
+    connect_sheet,
+    add_ex_gsheet,
+    load_ex_gsheet,
+    delete_expense,
+    update_expense,
+    set_budget,
+    get_budget
 )
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 # Initialize current_trip in session state if not already set

@@ -85,7 +85,6 @@ with st.sidebar.form("add_expense"):
     amount = st.number_input("Amount", min_value=0.0, format="%.2f")
     currency = st.selectbox("Currency", ["INR", "USD", "EUR", "AED", "JPY", "GBP"])
     location = st.text_input("Location")
-    trip = st.text_input("Trip Name")
 
     if st.form_submit_button("Add"):
         rates = get_exchange_rates()

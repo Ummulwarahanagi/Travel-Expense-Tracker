@@ -80,7 +80,7 @@ def set_budget(sheet: gspread.Spreadsheet, amount: float) -> None:
     logger.info("Budget set to %.2f.", amount)
 
 
-def get_budget(sheet: gspread.Spreadsheet,username:str) -> float:
+def get_budget(sheet: gspread.Spreadsheet) -> float:
     ws = get_budget_worksheet(sheet)
     try:
         return float(ws.acell("B1").value)

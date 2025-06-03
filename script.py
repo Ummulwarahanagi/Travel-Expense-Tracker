@@ -128,11 +128,11 @@ if not df.empty:
     with tabs[1]:
         st.subheader("Category Breakdown")
         summary = df.groupby("category")["amount"].sum().reset_index()
-        st.bar_chart(summary, x="Category", y="Amount")
+        st.bar_chart(summary, x="category", y="amount")
 
         summary["% Used"] = (summary["amount"] / curr_budget * 100).round(2)
         summary["Status"] = summary["% Used"].apply(lambda x: " OK" if x <= 30 else "High")# shorthand lambda function
-        st.dataframe(summary[["Category", "Amount", "% Used", "Status"]])
+        st.dataframe(summary[["category", "amount", "% Used", "Status"]])
 
     with tabs[2]:
         st.subheader("Delete Expense")

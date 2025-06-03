@@ -142,38 +142,3 @@ def get_budget(sheet: gspread.Spreadsheet, username: str) -> float:
     except (IndexError, ValueError, KeyError) as e:
         logger.warning("No budget for '%s': %s. Defaulting to 0.0.", username, e)
         return 0.0
-def parse_expense(text):
-    categories = ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"]
-    amount = 0.0
-    cat = "Miscellaneous"
-    description = ""
-
-    # Extract amount using regex
-    amount_match = re.search(r'\b(\d+(\.\d{1,2})?)\b', text)
-    if amount_match:
-        amount = float(amount_match.group(1))
-
-    # Find category by keyword match
-    for c in categories:
-        if c.lower() in text.lower():
-            cat = c
-            break
-
-    # Remove keywords to isolate description
-    desc = text.lower()
-    desc = re.sub(r'spent', '', desc)
-    desc = re.sub(r'\b' + str(amount) + r'\b', '', desc)
-    desc = re.sub(cat.lower(), '', desc)
-    description = desc.strip().capitalize() or "No Description"
-
-    return amount, cat, description
-
-def recognize_speech_from_file(audio_path):
-    r = sr.Recognizer()
-    with sr.AudioFile(audio_path) as source:
-        audio = r.record(source)
-    try:
-        text = r.recognize_google(audio)
-    except Exception:
-        text = ""
-    return text

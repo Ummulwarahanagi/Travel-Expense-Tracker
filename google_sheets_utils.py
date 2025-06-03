@@ -42,7 +42,7 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
         df.columns = df.columns.str.strip()
         logger.info("Columns in DataFrame: %s", df.columns.tolist())
 
-    column_name = "username"  # Match your sheet exactly
+    column_name = "username"
     if column_name not in df.columns:
         raise KeyError(f"Column '{column_name}' not found in Google Sheet")
 
@@ -51,7 +51,7 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     return df
 
 def get_user_budget(sheet: gspread.Spreadsheet, username: str) -> float:
-    ws = sheet.worksheet("Budget")
+    ws = sheet.worksheet(BUDGET_SHEET)
     records = ws.get_all_records()
     df = pd.DataFrame(records)
 
@@ -66,10 +66,10 @@ def get_user_budget(sheet: gspread.Spreadsheet, username: str) -> float:
         return float(user_budget_row[col_budget].values[0])
     return 0.0
 
-def add_ex_gsheet(sheet: gspread.Spreadsheet, username: str, date: str, category: str, description: str, amount: float, location: str, trip: str) -> None:
+def add_ex_gsheet(sheet: gspread.Spreadsheet, username: str, date: str, category: str, description: str, amount: float, location: str, trip: str, currency: str, inr_amount: float) -> None:
     ws = sheet.worksheet(SHEET_NAME)
-    ws.append_row([username, date, category, description, float(amount), location, trip])
-    logger.info("Expense added for '%s': %s | %s | %.2f | %s | %s", username, date, category, amount, location, trip)
+    ws.append_row([username, date, category, description, float(amount), location, trip, currency, float(inr_amount)])
+    logger.info("Expense added for '%s': %s | %s | %.2f | %s | %s | %s | %.2f", username, date, category, amount, location, trip, currency, inr_amount)
 
 def delete_expense(sheet: gspread.Spreadsheet, row_number: int) -> None:
     try:
@@ -79,10 +79,10 @@ def delete_expense(sheet: gspread.Spreadsheet, row_number: int) -> None:
     except gspread.exceptions.APIError as e:
         logger.error("Failed to delete row %d: %s", row_number, e)
 
-def update_expense(sheet: gspread.Spreadsheet, row_number: int, username: str, date: str, category: str, description: str, amount: float, location: str, trip: str) -> None:
+def update_expense(sheet: gspread.Spreadsheet, row_number: int, username: str, date: str, category: str, description: str, amount: float, location: str, trip: str, currency: str, inr_amount: float) -> None:
     try:
         ws = sheet.worksheet(SHEET_NAME)
-        ws.update(f"A{row_number}:H{row_number}", [[username, date, category, description, float(amount), location, trip]])
+        ws.update(f"A{row_number}:I{row_number}", [[username, date, category, description, float(amount), location, trip, currency, float(inr_amount)]])
         logger.info("Updated row %d for user '%s'.", row_number, username)
     except gspread.exceptions.APIError as e:
         logger.error("Failed to update row %d: %s", row_number, e)
@@ -102,7 +102,7 @@ def set_budget(sheet: gspread.Spreadsheet, username: str, amount: float) -> None
 
     logger.info("Budget sheet columns: %s", df.columns.tolist())
 
-    column_name = "username"  # Match your sheet's exact column header
+    column_name = "username"
 
     if df.empty or column_name not in df.columns:
         ws.append_row([username, float(amount)])

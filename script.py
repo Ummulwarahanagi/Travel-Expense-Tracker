@@ -101,7 +101,7 @@ with st.sidebar.form("add_expense"):
                     inr_equiv = round(amount / rate_to_inr, 2)
 
                 add_ex_gsheet(gsheet, username, str(date), category, description, amount, location, currency)
-                st.success(f"Expense added! (₹{inr_equiv} INR equivalent)")
+                st.success(f"Expense added!")
 
 # Load Data
 df = load_ex_gsheet(gsheet, username)

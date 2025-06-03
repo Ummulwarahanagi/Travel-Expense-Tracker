@@ -79,7 +79,7 @@ def get_user_budget(sheet: gspread.Spreadsheet, username: str) -> float:
 
 
 def add_ex_gsheet(sheet: gspread.Spreadsheet, username: str, date: str, category: str, description: str,
-                  amount: float, location: str,currency: str, inr_amount: float) -> None:
+                  amount: float, location: str,currency: str,) -> None:
     ws = sheet.worksheet(SHEET_NAME)
     ws.append_row([username, date, category, description, float(amount), location,currency, float(inr_amount)])
     logger.info(
@@ -98,11 +98,11 @@ def delete_expense(sheet: gspread.Spreadsheet, row_number: int) -> None:
 
 
 def update_expense(sheet: gspread.Spreadsheet, row_number: int, username: str, date: str, category: str,
-                   description: str, amount: float, location: str, currency: str, inr_amount: float) -> None:
+                   description: str, amount: float, location: str, currency: str) -> None:
     try:
         ws = sheet.worksheet(SHEET_NAME)
         ws.update(f"A{row_number}:I{row_number}",
-                  [[username, date, category, description, float(amount), location, currency, float(inr_amount)]])
+                  [[username, date, category, description, float(amount), location, currency]])
         logger.info("Updated row %d for user '%s'.", row_number, username)
     except gspread.exceptions.APIError as e:
         logger.error("Failed to update row %d: %s", row_number, e)

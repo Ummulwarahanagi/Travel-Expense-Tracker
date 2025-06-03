@@ -30,21 +30,20 @@ def connect_sheet():
     return client.open_by_key(sheet_key)
 
 def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
-    """Load expenses only for the logged-in user."""
     ws = sheet.worksheet(SHEET_NAME)
     data = ws.get_all_records()
     df = pd.DataFrame(data)
 
-    # Normalize columns (strip and lowercase)
+    # Normalize columns: strip spaces and lowercase
     df.columns = [col.strip().lower() for col in df.columns]
 
     if "username" not in df.columns:
         raise ValueError("Column 'username' not found in the sheet.")
 
-    # Filter by username
+    # Filter rows for the current username
     df = df[df["username"] == username]
 
-    # Add row number for updates/deletes
+    # Add row number to match Google Sheet row (start from 2 for header)
     df["Row"] = list(range(2, 2 + len(df)))
 
     return df
@@ -54,7 +53,8 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
 def add_ex_gsheet(sheet: gspread.Spreadsheet, username: str, date: str, category: str, description: str, amount: float, location: str) -> None:
     ws = sheet.worksheet(SHEET_NAME)
     ws.append_row([username, date, category, description, float(amount), location])
-    logger.info("Expense added: %s | %s | %s | %.2f | %s | %s", username, date, category, description, amount, location)
+    logger.info("Expense added for user %s: %s | %s | %s | %.2f | %s", username, date, category, description, amount, location)
+
 
 
 def delete_expense(sheet: gspread.Spreadsheet, row_number: int) -> None:

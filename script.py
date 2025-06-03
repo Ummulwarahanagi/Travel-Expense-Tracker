@@ -108,7 +108,7 @@ if not df.empty:
                 if st.button("Delete"):
                     delete_expense(gsheet, int(delete_row))
                     st.success(f"Deleted row: {int(delete_row)}")
-                    st.experimental_rerun()
+                    st.rerun()
             else:
                 st.warning("No data available to delete.")
 

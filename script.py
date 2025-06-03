@@ -91,7 +91,7 @@ df = load_ex_gsheet(gsheet)
 
 # --- Budget Overview Section ---
 st.markdown("📊 **Budget Overview**")
-
+df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce").fillna(0)
 if not df.empty:
     total_spend = df["Amount"].sum()
     remained_budget = curr_budget - total_spend

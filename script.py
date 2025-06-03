@@ -123,18 +123,18 @@ if not df.empty:
         st.dataframe(df[["Date", "Category", "Description", "Amount", "Currency", "INR Amount", "Location", "Trip"]])
 
     with tabs[1]:
-    st.subheader("📌 Category Breakdown")
-    cat_df = df.groupby("Category")["INR Amount"].sum().reset_index()
-    st.bar_chart(cat_df.set_index("Category"))
+       st.subheader("📌 Category Breakdown")
+       cat_df = df.groupby("Category")["INR Amount"].sum().reset_index()
+       st.bar_chart(cat_df.set_index("Category"))
 
-    if curr_budget > 0:
-        cat_df["% of Budget Used"] = (cat_df["INR Amount"] / curr_budget * 100).round(2)
-    else:
-        cat_df["% of Budget Used"] = 0
-        st.warning("⚠️ Budget is zero or not set. Percentage calculations are disabled.")
+       if curr_budget > 0:
+          cat_df["% of Budget Used"] = (cat_df["INR Amount"] / curr_budget * 100).round(2)
+       else:
+          cat_df["% of Budget Used"] = 0
+          st.warning("⚠️ Budget is zero or not set. Percentage calculations are disabled.")
 
-    cat_df["Status"] = cat_df["% of Budget Used"].apply(lambda x: "✅ OK" if x <= 30 else "⚠️ High")
-    st.dataframe(cat_df[["Category", "INR Amount", "% of Budget Used", "Status"]])
+      cat_df["Status"] = cat_df["% of Budget Used"].apply(lambda x: "✅ OK" if x <= 30 else "⚠️ High")
+      st.dataframe(cat_df[["Category", "INR Amount", "% of Budget Used", "Status"]])
 
     with tabs[2]:
         st.subheader("🛠️ Manage Expenses")

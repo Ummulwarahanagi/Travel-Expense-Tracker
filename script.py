@@ -13,7 +13,7 @@ from google_sheets_utils import (
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 
 gsheet = connect_sheet()
-query_params = st.query_params
+query_params = st.experimental_get_query_params()
 username = query_params.get("username", [None])[0]
 
 if not username:

@@ -128,37 +128,47 @@ if not df.empty:
         insights = []
 
         if df.empty:
-            return ["No insights available. Add some expenses first."]
+            return [("No insights available. Add some expenses first.", "info")]
 
         total_spent = df["Amount"].sum()
         daily_avg = df.groupby("Date")["Amount"].sum().mean()
 
         if total_spent > budget:
-            insights.append(("🚨 You’ve exceeded your total budget. Consider reviewing high-expense categories.", "red"))
+            insights.append(("🚨 You’ve exceeded your total budget. Consider reviewing high-expense categories.", "danger"))
         elif budget - total_spent < budget * 0.2:
-            insights.append(("⚠️ You're close to exhausting your budget. Plan remaining days carefully.", "orange"))
+            insights.append(("⚠️ You're close to exhausting your budget. Plan remaining days carefully.", "warning"))
 
         food_exp = df[df["Category"] == "Food"]["Amount"].sum()
         if food_exp > total_spent * 0.3:
-            insights.append(("🍽️ High food expenses — try exploring cheaper local dining options.", "orange"))
+            insights.append(("🍽️ High food expenses — try exploring cheaper local dining options.", "warning"))
 
         hotel_exp = df[df["Category"] == "Hotels"]["Amount"].sum()
         if hotel_exp > total_spent * 0.4:
-            insights.append(("🏨 Hotels are taking a big chunk — check for cheaper stays next time.", "orange"))
+            insights.append(("🏨 Hotels are taking a big chunk — check for cheaper stays next time.", "warning"))
 
         transport_exp = df[df["Category"] == "Transport"]["Amount"].sum()
         if transport_exp < total_spent * 0.1:
-            insights.append(("🚗 Nice! You’re saving on transport. Keep it up!", "green"))
+            insights.append(("🚗 Nice! You’re saving on transport. Keep it up!", "success"))
 
         if daily_avg > budget / 10:
-            insights.append((f"📈 Your average daily spend is ₹{daily_avg:.2f} — adjust to stay on track.", "orange"))
+            insights.append((f"📈 Your average daily spend is ₹{daily_avg:.2f} — adjust to stay on track.", "warning"))
 
         return insights
 
+    def styled_message(message, style_type):
+        styles = {
+            "danger": "background-color:#ffdddd; color:#a70000; border-left:6px solid #a70000; padding:10px; margin-bottom:10px; border-radius:5px;",
+            "warning": "background-color:#fff4e5; color:#8a6d3b; border-left:6px solid #ffa500; padding:10px; margin-bottom:10px; border-radius:5px;",
+            "success": "background-color:#ddffdd; color:#207520; border-left:6px solid #207520; padding:10px; margin-bottom:10px; border-radius:5px;",
+            "info": "background-color:#e7f3fe; color:#31708f; border-left:6px solid #31708f; padding:10px; margin-bottom:10px; border-radius:5px;",
+        }
+        style = styles.get(style_type, styles["info"])
+        return f'<div style="{style}">{message}</div>'
+
     insights = generate_insights(df, curr_budget)
     if insights:
-        for message, color in insights:
-            st.markdown(f'<p style="color:{color}; font-weight:bold;">{message}</p>', unsafe_allow_html=True)
+        for message, style_type in insights:
+            st.markdown(styled_message(message, style_type), unsafe_allow_html=True)
     else:
         st.info("No insights available yet. Add some expenses.")
 

@@ -13,7 +13,7 @@ from google_sheets_utils import (
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 
 gsheet = connect_sheet()
-query_params = st.experimental_get_query_params()
+query_params = st.query_params
 username = query_params.get("username", [None])[0]
 
 if not username:
@@ -24,7 +24,7 @@ st.title(f"Welcome {username}")
 
 if st.sidebar.button("Logout"):
     st.query_params
-    st.experimental_rerun()
+    st.rerun()
 
 # Sidebar - Budget section
 st.sidebar.header("Set Your Budget")
@@ -125,7 +125,7 @@ if not df.empty:
                     if st.form_submit_button("Update"):
                         update_expense(gsheet, int(update_row), username, str(u_date), u_cat, u_desc, u_amt, u_loc, u_trip)
                         st.success(f"Updated expense in row {int(update_row)}")
-                        st.experimental_rerun()
+                        st.rerun()
             else:
                 st.warning("No data available to update.")
 

@@ -148,7 +148,7 @@ if not df.empty:
             if st.button("Delete"):
                 delete_expense(gsheet, int(delete_row))
                 st.success(f"Deleted row: {int(delete_row)}")
-                st.experimental_rerun()
+                st.rerun()
 
         st.subheader("✏️ Update Expense")
         with st.expander("Update an expense"):

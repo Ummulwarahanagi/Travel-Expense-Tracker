@@ -141,3 +141,4 @@ def get_budget(sheet: gspread.Spreadsheet, username: str) -> float:
         return float(df[df['username'] == username]["Budget"].values[0])
     except (IndexError, ValueError, KeyError) as e:
         logger.warning("No budget for '%s': %s. Defaulting to 0.0.", username, e)
+        return 0

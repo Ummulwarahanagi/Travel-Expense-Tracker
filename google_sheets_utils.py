@@ -80,10 +80,16 @@ def set_budget(sheet: gspread.Spreadsheet, amount: float) -> None:
     logger.info("Budget set to %.2f.", amount)
 
 
-def get_budget(sheet: gspread.Spreadsheet) -> float:
+def get_budget(sheet: gspread.Spreadsheet, username: str) -> float:
     ws = get_budget_worksheet(sheet)
     try:
-        return float(ws.acell("B1").value)
-    except (ValueError) as e:
-        logger.warning("Failed to fetch budget: %s. Defaulting to 0.0.", e)
-        return 0
+        # Find username in column A and return budget from column B
+        cell = ws.find(username)
+        if cell:
+            budget = ws.cell(cell.row, 2).value
+            return float(budget)
+        else:
+            return 0.0
+    except Exception as e:
+        logger.warning(f"Failed to fetch budget for {username}: {e}. Defaulting to 0.0.")
+        return 0.0

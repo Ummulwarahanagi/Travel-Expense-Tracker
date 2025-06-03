@@ -19,8 +19,9 @@ st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 
 # ------------------ Currency Conversion ------------------
 CACHE_FILE = "currency_rates.json"
+BASE_CURRENCY = "INR"
 
-def get_exchange_rates(base="INR"):
+def get_exchange_rates(base=BASE_CURRENCY):
     if os.path.exists(CACHE_FILE):
         with open(CACHE_FILE, "r") as f:
             cache = json.load(f)
@@ -28,6 +29,8 @@ def get_exchange_rates(base="INR"):
                 return cache["rates"]
     url = f"https://api.exchangerate-api.com/v4/latest/{base}"
     response = requests.get(url)
+    if response.status_code != 200:
+        return None
     data = response.json()
     with open(CACHE_FILE, "w") as f:
         json.dump({"date": str(datetime.date.today()), "rates": data["rates"]}, f)
@@ -41,19 +44,19 @@ username_list = query_params.get("username")
 username = username_list[0] if username_list else None
 
 if not username:
-    st.error("Logged Out")
+    st.error("Logged Out - No username provided")
     st.stop()
 
 st.title(f"Welcome {username}")
 
 if st.sidebar.button("Logout"):
-    st.query_params
-    st.rerun()
+    st.experimental_set_query_params()  # Clear query params
+    st.experimental_rerun()
 
 # Sidebar - Budget section
 st.sidebar.header("Set Your Budget")
 curr_budget = get_budget(gsheet, username) or 0.0
-budget_input = st.sidebar.number_input("Budget :", min_value=0.0, value=curr_budget, step=100.0, format="%.2f")
+budget_input = st.sidebar.number_input("Budget (INR):", min_value=0.0, value=curr_budget, step=100.0, format="%.2f")
 if st.sidebar.button("Update Budget"):
     set_budget(gsheet, username, budget_input)
     st.sidebar.success("Budget updated!")
@@ -65,15 +68,27 @@ with st.sidebar.form("add_expense"):
     category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"])
     description = st.text_input("Description")
     amount = st.number_input("Amount", min_value=0.0, format="%.2f")
-    currency = st.selectbox("Currency", ["INR", "USD", "EUR", "AED", "JPY", "GBP"])  # 🆕
+    currency = st.selectbox("Currency", ["INR", "USD", "EUR", "AED", "JPY", "GBP"])
     location = st.text_input("Location")
     trip = st.text_input("Trip Name")
 
     if st.form_submit_button("Add"):
-        rates = get_exchange_rates(currency)
-        inr_equiv = round(amount * rates.get("INR", 1), 2)
-        add_ex_gsheet(gsheet, username, str(date), category, description, amount, location, trip, currency, inr_equiv)
-        st.success(f"Expense added! (₹{inr_equiv} INR)")
+        rates = get_exchange_rates()
+        if not rates:
+            st.error("Failed to fetch currency exchange rates. Try again later.")
+        else:
+            rate_to_inr = rates.get(currency)
+            if rate_to_inr is None:
+                st.error(f"Exchange rate for {currency} not found.")
+            else:
+                if currency == BASE_CURRENCY:
+                    inr_equiv = amount
+                else:
+                    inr_equiv = round(amount / rate_to_inr, 2)
+
+                add_ex_gsheet(gsheet, username, str(date), category, description, amount, location, trip, currency,
+                              inr_equiv)
+                st.success(f"Expense added! (₹{inr_equiv} INR equivalent)")
 
 # Load Data
 df = load_ex_gsheet(gsheet, username)
@@ -94,66 +109,74 @@ if not df.empty:
 st.markdown("## Budget Overview")
 if not df.empty:
     # Use INR Amount for calculations
-    total_spend = df["INR Amount"].sum() if "INR Amount" in df.columns else df["Amount"].sum()
-    remained_budget = curr_budget - total_spend
+    total_spent = df["INR Amount"].sum()
+    remaining = curr_budget - total_spent
 
-    if selected_trip != "All":
-        st.markdown(f"### 📌 Viewing Trip: `{selected_trip}`")
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total Budget", f"₹{curr_budget:,.2f}")
-    col2.metric("Total Spend", f"₹{total_spend:,.2f}", delta_color="inverse" if total_spend > curr_budget else "normal")
-    col3.metric("Remaining Amount", f"₹{remained_budget:,.2f}", delta_color="inverse" if remained_budget < curr_budget * 0.2 else "normal")
+    st.metric(label="Budget (INR)", value=f"₹{curr_budget:,.2f}")
+    st.metric(label="Total Spent (INR)", value=f"₹{total_spent:,.2f}")
+    st.metric(label="Remaining Budget (INR)", value=f"₹{remaining:,.2f}")
 
     tabs = st.tabs(["📋 All Expenses", "📌 Category Breakdown", "🛠️ Manage Expense"])
 
     with tabs[0]:
         st.subheader("📋 All Expenses")
-        st.dataframe(df)
+        st.dataframe(df[["Date", "Category", "Description", "Amount", "Currency", "INR Amount", "Location", "Trip"]])
 
     with tabs[1]:
         st.subheader("📌 Category Breakdown")
-        amount_col = "INR Amount" if "INR Amount" in df.columns else "Amount"
-        summary = df.groupby("Category")[amount_col].sum().reset_index()
-        st.bar_chart(summary, x="Category", y=amount_col)
-        summary["% Used"] = (summary[amount_col] / curr_budget * 100).round(2)
-        summary["Status"] = summary["% Used"].apply(lambda x: "✅ OK" if x <= 30 else "⚠️ High")
-        st.dataframe(summary[["Category", amount_col, "% Used", "Status"]])
+        cat_df = df.groupby("Category")["INR Amount"].sum().reset_index()
+        st.bar_chart(cat_df.set_index("Category"))
+        cat_df["% of Budget Used"] = (cat_df["INR Amount"] / curr_budget * 100).round(2)
+        cat_df["Status"] = cat_df["% of Budget Used"].apply(lambda x: "✅ OK" if x <= 30 else "⚠️ High")
+        st.dataframe(cat_df[["Category", "INR Amount", "% of Budget Used", "Status"]])
 
     with tabs[2]:
-        st.subheader("🛠️ Manage Expense")
-        st.markdown("### 🗑️ Delete Expense")
-        with st.expander("Delete an expense (enter the row number):"):
+        st.subheader("🛠️ Manage Expenses")
+        with st.expander("Delete an expense by Row number"):
             if "Row" in df.columns:
                 max_row = int(df["Row"].max())
-                delete_row = st.number_input("Row Number", min_value=2, max_value=max_row, step=1)
-                if st.button("Delete"):
-                    delete_expense(gsheet, int(delete_row))
-                    st.success(f"Deleted row: {int(delete_row)}")
-                    st.rerun()
+                del_row = st.number_input("Row Number to Delete", min_value=2, max_value=max_row, step=1)
+                if st.button("Delete Expense"):
+                    delete_expense(gsheet, int(del_row))
+                    st.success(f"Deleted row {int(del_row)}")
+                    st.experimental_rerun()
             else:
-                st.warning("No data available to delete.")
+                st.info("No expense data available to delete.")
 
-        st.markdown("### ✏️ Update Expense")
-        with st.expander("Update an expense"):
+        with st.expander("Update an expense by Row number"):
             if "Row" in df.columns:
-                update_row = st.number_input("Row to Update", min_value=2, max_value=int(df["Row"].max()), step=1)
-                with st.form("update_expense"):
-                    u_date = st.date_input("Date", key="u_date")
-                    u_cat = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"], key="u_cat")
-                    u_desc = st.text_input("Description", key="u_desc")
-                    u_amt = st.number_input("Amount", min_value=0.0, format="%.2f", key="u_amt")
-                    u_curr = st.selectbox("Currency", ["INR", "USD", "EUR", "AED", "JPY", "GBP"], key="u_curr")
-                    u_loc = st.text_input("Location", key="u_loc")
-                    u_trip = st.text_input("Trip Name", key="u_trip")
-                    if st.form_submit_button("Update"):
-                        rates = get_exchange_rates(u_curr)
-                        u_inr = round(u_amt * rates.get("INR", 1), 2)
-                        update_expense(gsheet, int(update_row), username, str(u_date), u_cat, u_desc, u_amt, u_loc, u_trip, u_curr, u_inr)
-                        st.success(f"Updated expense in row {int(update_row)}")
-                        st.rerun()
+                upd_row = st.number_input("Row Number to Update", min_value=2, max_value=int(df["Row"].max()), step=1)
+                # Find expense data for upd_row
+                upd_expense = df[df["Row"] == upd_row]
+                if not upd_expense.empty:
+                    upd_expense = upd_expense.iloc[0]
+                    with st.form("update_expense_form"):
+                        u_date = st.date_input("Date", value=upd_expense["Date"])
+                        u_cat = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"],
+                                             index=["Flights", "Hotels", "Food", "Transport", "Miscellaneous"].index(upd_expense["Category"]))
+                        u_desc = st.text_input("Description", value=upd_expense["Description"])
+                        u_amt = st.number_input("Amount", min_value=0.0, value=float(upd_expense["Amount"]), format="%.2f")
+                        u_curr = st.selectbox("Currency", ["INR", "USD", "EUR", "AED", "JPY", "GBP"],
+                                              index=["INR", "USD", "EUR", "AED", "JPY", "GBP"].index(upd_expense["Currency"]))
+                        u_loc = st.text_input("Location", value=upd_expense["Location"])
+                        u_trip = st.text_input("Trip Name", value=upd_expense["Trip"])
+
+                        if st.form_submit_button("Update Expense"):
+                            rates = get_exchange_rates()
+                            if not rates or u_curr not in rates:
+                                st.error("Exchange rates not available. Try again later.")
+                            else:
+                                if u_curr == BASE_CURRENCY:
+                                    u_inr = u_amt
+                                else:
+                                    u_inr = round(u_amt / rates[u_curr], 2)
+                                update_expense(gsheet, upd_row, username, str(u_date), u_cat, u_desc, u_amt, u_loc, u_trip, u_curr, u_inr)
+                                st.success(f"Expense in row {upd_row} updated!")
+                                st.experimental_rerun()
+                else:
+                    st.info("Selected row not found in data.")
             else:
-                st.warning("No data available to update.")
+                st.info("No expense data available to update.")
 
     # Smart Spend Insights Section
     st.markdown("---")
@@ -164,24 +187,23 @@ if not df.empty:
         if df.empty:
             return [("No insights available. Add some expenses first.", "info")]
 
-        amount_col = "INR Amount" if "INR Amount" in df.columns else "Amount"
-        total_spent = df[amount_col].sum()
-        daily_avg = df.groupby("Date")[amount_col].sum().mean()
+        total_spent = df["INR Amount"].sum()
+        daily_avg = df.groupby("Date")["INR Amount"].sum().mean()
 
         if total_spent > budget:
             insights.append(("🚨 You’ve exceeded your total budget. Consider reviewing high-expense categories.", "danger"))
         elif budget - total_spent < budget * 0.2:
             insights.append(("⚠️ You're close to exhausting your budget. Plan remaining days carefully.", "warning"))
 
-        food_exp = df[df["Category"] == "Food"][amount_col].sum()
+        food_exp = df[df["Category"] == "Food"]["INR Amount"].sum()
         if food_exp > total_spent * 0.3:
             insights.append(("🍽️ High food expenses — try exploring cheaper local dining options.", "warning"))
 
-        hotel_exp = df[df["Category"] == "Hotels"][amount_col].sum()
+        hotel_exp = df[df["Category"] == "Hotels"]["INR Amount"].sum()
         if hotel_exp > total_spent * 0.4:
             insights.append(("🏨 Hotels are taking a big chunk — check for cheaper stays next time.", "warning"))
 
-        transport_exp = df[df["Category"] == "Transport"][amount_col].sum()
+        transport_exp = df[df["Category"] == "Transport"]["INR Amount"].sum()
         if transport_exp < total_spent * 0.1:
             insights.append(("🚗 Nice! You’re saving on transport. Keep it up!", "success"))
 
@@ -192,19 +214,17 @@ if not df.empty:
 
     def styled_message(message, style_type):
         styles = {
-            "danger": "background-color:#ffdddd; color:#a70000; border-left:6px solid #a70000; padding:10px; margin-bottom:10px; border-radius:5px;",
-            "warning": "background-color:#fff4e5; color:#8a6d3b; border-left:6px solid #ffa500; padding:10px; margin-bottom:10px; border-radius:5px;",
-            "success": "background-color:#ddffdd; color:#207520; border-left:6px solid #207520; padding:10px; margin-bottom:10px; border-radius:5px;",
-            "info": "background-color:#e7f3fe; color:#31708f; border-left:6px solid #31708f; padding:10px; margin-bottom:10px; border-radius:5px;",
+            "danger": "background-color:#ffdddd; color:#a70000; padding:10px; border-radius:5px;",
+            "warning": "background-color:#fff4cc; color:#665c00; padding:10px; border-radius:5px;",
+            "success": "background-color:#ddffdd; color:#1a6f1a; padding:10px; border-radius:5px;",
+            "info": "background-color:#d9edf7; color:#31708f; padding:10px; border-radius:5px;"
         }
-        return f'<div style="{styles.get(style_type, styles["info"])}">{message}</div>'
+        style = styles.get(style_type, styles["info"])
+        return f"<div style='{style}'>{message}</div>"
 
     insights = generate_insights(df, curr_budget)
-    for message, style_type in insights:
-        st.markdown(styled_message(message, style_type), unsafe_allow_html=True)
+    for msg, stype in insights:
+        st.markdown(styled_message(msg, stype), unsafe_allow_html=True)
 
 else:
-    st.info("No expenses added yet. Use the sidebar to start tracking your expenses.")
-    st.markdown("---")
-    st.subheader("💡 Smart Spend Insights")
-    st.info("No insights available yet. Add some expenses to see tips here.")
+    st.info("No expense data found. Please add expenses using the form on the left sidebar.")

@@ -53,13 +53,28 @@ if st.sidebar.button("Logout"):
     st.experimental_set_query_params()  # Clear query params
     st.experimental_rerun()
 
-# Sidebar - Budget section
 st.sidebar.header("Set Your Budget")
-curr_budget = get_budget(gsheet, username) or 0.0
-budget_input = st.sidebar.number_input("Budget (INR):", min_value=0.0, value=curr_budget, step=100.0, format="%.2f")
+
+# Fetch budget on first load or if not in session state
+if "curr_budget" not in st.session_state:
+    st.session_state.curr_budget = get_budget(gsheet, username) or 0.0
+
+budget_input = st.sidebar.number_input(
+    "Budget (INR):",
+    min_value=0.0,
+    value=st.session_state.curr_budget,
+    step=100.0,
+    format="%.2f"
+)
+
 if st.sidebar.button("Update Budget"):
     set_budget(gsheet, username, budget_input)
-    st.rerun()  # <- This will reload with the updated budget
+    # Immediately fetch the updated budget again
+    st.session_state.curr_budget = get_budget(gsheet, username) or budget_input
+    st.success(f"Budget updated to ₹{st.session_state.curr_budget:,.2f}")
+
+# Use this updated budget throughout the app
+curr_budget = st.session_state.curr_budget
 
 # Sidebar - Add Expense Form
 st.sidebar.header("Add Expense")

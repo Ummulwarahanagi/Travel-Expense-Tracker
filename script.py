@@ -152,39 +152,40 @@ if not df.empty:
                         st.experimental_rerun()
             else:
                 st.warning("No data available to update.")
-        voice_tab = st.tabs(["🗣️ Voice Expense Input"])[0]
 
-with voice_tab:
-    st.header("🎤 Voice to Expense Logging")
+    voice_tab = st.tabs(["🗣️ Voice Expense Input"])[0]
 
-    webrtc_ctx = webrtc_streamer(key="speech-to-text", audio_receiver_size=1024)
+    with voice_tab:
+        st.header("🎤 Voice to Expense Logging")
 
-    if webrtc_ctx.audio_receiver:
-        audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
-        if audio_frames:
-            # Save the first audio frame to a temp WAV file
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
-                tmp_path = tmp_file.name
-                audio_frames[0].to_wav(tmp_path)
+        webrtc_ctx = webrtc_streamer(key="speech-to-text", audio_receiver_size=1024)
 
-            # Playback audio for user confirmation
-            st.audio(tmp_path)
+        if webrtc_ctx.audio_receiver:
+            audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
+            if audio_frames:
+                # Save the first audio frame to a temp WAV file
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
+                    tmp_path = tmp_file.name
+                    audio_frames[0].to_wav(tmp_path)
 
-            recognized_text = recognize_speech_from_file(tmp_path)
-            os.remove(tmp_path)  # clean up temp file
+                # Playback audio for user confirmation
+                st.audio(tmp_path)
 
-            if recognized_text:
-                st.write("Recognized Speech:", recognized_text)
-                amount, category, description = parse_expense(recognized_text)
+                recognized_text = recognize_speech_from_file(tmp_path)
+                os.remove(tmp_path)  # clean up temp file
 
-                st.write(f"Parsed Data: Amount = ₹{amount}, Category = {category}, Description = {description}")
+                if recognized_text:
+                    st.write("Recognized Speech:", recognized_text)
+                    amount, category, description = parse_expense(recognized_text)
 
-                if st.button("Add Expense from Voice"):
-                    add_ex_gsheet(gsheet, username, str(pd.Timestamp.now().date()), category, description, amount, "Voice Input")
-                    st.success("Expense added from voice input!")
-                    st.experimental_rerun()
-            else:
-                st.warning("Could not recognize speech. Please try again.")
+                    st.write(f"Parsed Data: Amount = ₹{amount}, Category = {category}, Description = {description}")
+
+                    if st.button("Add Expense from Voice"):
+                        add_ex_gsheet(gsheet, username, str(pd.Timestamp.now().date()), category, description, amount, "Voice Input")
+                        st.success("Expense added from voice input!")
+                        st.experimental_rerun()
+                else:
+                    st.warning("Could not recognize speech. Please try again.")
 
 else:
     st.info("No expenses added. Use the sidebar to start tracking your expenses.")

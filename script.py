@@ -56,7 +56,7 @@ with st.sidebar.form("add_expense"):
     location = st.text_input("Location")
 
     if st.form_submit_button("Add"):
-        add_ex_gsheet(gsheet, username, str(date), category, description, amount, location)
+        add_ex_gsheet(gsheet, username, str(date), category, description, amount, location,"INR")
         st.success("Expense added!")
 
 # --- Currency Converter Sidebar ---

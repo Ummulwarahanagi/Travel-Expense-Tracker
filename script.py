@@ -50,8 +50,8 @@ if not username:
 st.title(f"Welcome {username}")
 
 if st.sidebar.button("Logout"):
-    st.experimental_set_query_params()  # Clear query params
-    st.experimental_rerun()
+    st.query_params  # Clear query params
+    st.rerun()
 
 st.sidebar.header("Set Your Budget")
 
@@ -60,7 +60,7 @@ if "curr_budget" not in st.session_state:
     st.session_state.curr_budget = get_budget(gsheet, username) or 0.0
 
 budget_input = st.sidebar.number_input(
-    "Budget (INR):",
+    "Budget",
     min_value=0.0,
     value=st.session_state.curr_budget,
     step=100.0,
@@ -91,15 +91,6 @@ with st.sidebar.form("add_expense"):
         if not rates:
             st.error("Failed to fetch currency exchange rates. Try again later.")
         else:
-            rate_to_inr = rates.get(currency)
-            if rate_to_inr is None:
-                st.error(f"Exchange rate for {currency} not found.")
-            else:
-                if currency == BASE_CURRENCY:
-                    inr_equiv = amount
-                else:
-                    inr_equiv = round(amount / rate_to_inr, 2)
-
                 add_ex_gsheet(gsheet, username, str(date), category, description, amount, location, currency)
                 st.success(f"Expense added!")
 
@@ -111,22 +102,22 @@ df = load_ex_gsheet(gsheet, username)
 st.markdown("## Budget Overview")
 if not df.empty:
     # Use INR Amount for calculations
-    total_spent = df["INR Amount"].sum()
+    total_spent = df.sum()
     remaining = curr_budget - total_spent
 
-    st.metric(label="Budget (INR)", value=f"₹{curr_budget:,.2f}")
-    st.metric(label="Total Spent (INR)", value=f"₹{total_spent:,.2f}")
-    st.metric(label="Remaining Budget (INR)", value=f"₹{remaining:,.2f}")
+    st.metric(label="Budget", value=f"₹{curr_budget:,.2f}")
+    st.metric(label="Total Spent", value=f"₹{total_spent:,.2f}")
+    st.metric(label="Remaining Budget", value=f"₹{remaining:,.2f}")
 
     tabs = st.tabs(["📋 All Expenses", "📌 Category Breakdown", "🛠️ Manage Expense"])
 
     with tabs[0]:
         st.subheader("📋 All Expenses")
-        st.dataframe(df[["Date", "Category", "Description", "Amount", "Currency", "INR Amount", "Location", "Trip","Row"]])
+        st.dataframe(df[["Date", "Category", "Description", "Amount", "Currency", "Location","Row"]])
 
     with tabs[1]:
        st.subheader("📌 Category Breakdown")
-       cat_df = df.groupby("Category")["INR Amount"].sum().reset_index()
+       cat_df = df.groupby("Category")["Amount].sum().reset_index()
        st.bar_chart(cat_df.set_index("Category"))
 
        if curr_budget > 0:

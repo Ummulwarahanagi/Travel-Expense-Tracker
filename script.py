@@ -146,5 +146,44 @@ if not df.empty:
                         st.experimental_rerun()
             else:
                 st.warning("No data available to update.")
+
+    # --- Smart Spend Insights ---
+    st.markdown("💡 **Smart Spend Insights**")
+
+    def generate_insights(df, budget):
+        insights = []
+
+        if df.empty:
+            return ["No insights available. Add some expenses first."]
+
+        total_spent = df["Amount"].sum()
+        daily_avg = df.groupby("Date")["Amount"].sum().mean()
+
+        if total_spent > budget:
+            insights.append("🚨 You’ve exceeded your total budget. Consider reviewing high-expense categories.")
+        elif budget - total_spent < budget * 0.2:
+            insights.append("⚠️ You're close to exhausting your budget. Plan remaining days carefully.")
+
+        food_exp = df[df["Category"] == "Food"]["Amount"].sum()
+        if food_exp > total_spent * 0.3:
+            insights.append("🍽️ High food expenses — try exploring cheaper local dining options.")
+
+        hotel_exp = df[df["Category"] == "Hotels"]["Amount"].sum()
+        if hotel_exp > total_spent * 0.4:
+            insights.append("🏨 Hotels are taking a big chunk — check for cheaper stays next time.")
+
+        transport_exp = df[df["Category"] == "Transport"]["Amount"].sum()
+        if transport_exp < total_spent * 0.1:
+            insights.append("🚗 Nice! You’re saving on transport. Keep it up!")
+
+        if daily_avg > budget / 10:
+            insights.append(f"📈 Your average daily spend is ₹{daily_avg:.2f} — adjust to stay on track.")
+
+        return insights
+
+    insights = generate_insights(df, curr_budget)
+    for tip in insights:
+        st.write(tip)
+
 else:
     st.info("No expenses added. Use the sidebar to start tracking your expenses.")

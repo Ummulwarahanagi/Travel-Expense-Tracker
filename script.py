@@ -133,8 +133,8 @@ if not df.empty:
           cat_df["% of Budget Used"] = 0
           st.warning("⚠️ Budget is zero or not set. Percentage calculations are disabled.")
 
-      cat_df["Status"] = cat_df["% of Budget Used"].apply(lambda x: "✅ OK" if x <= 30 else "⚠️ High")
-      st.dataframe(cat_df[["Category", "INR Amount", "% of Budget Used", "Status"]])
+       cat_df["Status"] = cat_df["% of Budget Used"].apply(lambda x: "✅ OK" if x <= 30 else "⚠️ High")
+       st.dataframe(cat_df[["Category", "INR Amount", "% of Budget Used", "Status"]])
 
     with tabs[2]:
         st.subheader("🛠️ Manage Expenses")

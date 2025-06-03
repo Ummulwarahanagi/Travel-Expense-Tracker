@@ -31,26 +31,26 @@ def connect_sheet():
 
 def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     ws = sheet.worksheet(SHEET_NAME)
-    data = ws.get_all_records()
-    df = pd.DataFrame(data)
+    raw_data = ws.get_all_values()
 
-    # Normalize columns: strip, lowercase
-    df.columns = [col.strip().lower() for col in df.columns]
+    import streamlit as st
+    st.write("🧪 Raw data from sheet:", raw_data)
 
-    # Try matching 'username' column with fuzzy match
-    username_col = None
-    for col in df.columns:
-        if col.replace(" ", "").lower() == "username":
-            username_col = col
-            break
+    if not raw_data or len(raw_data) < 2:
+        raise ValueError("Sheet is empty or does not have enough rows.")
 
-    if not username_col:
-        raise ValueError(f"Could not find a 'username' column. Found columns: {df.columns.tolist()}")
+    # Extract header and data
+    header = [h.strip().lower() for h in raw_data[0]]
+    st.write("🧪 Extracted header:", header)
 
-    # Filter by username
-    df = df[df[username_col] == username]
+    data_rows = raw_data[1:]
+    df = pd.DataFrame(data_rows, columns=header)
+    st.write("🧪 DataFrame preview:", df.head())
 
-    # Add row number for tracking
+    if "username" not in df.columns:
+        raise ValueError(f"❌ Could not find a 'username' column. Found: {df.columns.tolist()}")
+
+    df = df[df["username"] == username]
     df["Row"] = list(range(2, 2 + len(df)))
 
     return df

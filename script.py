@@ -58,7 +58,12 @@ st.title(f"Welcome {user}")
 st.markdown("Budget Overview")
 
 if not df.empty:
+    # Convert 'Amount' column to numeric, replace invalid with 0
+    df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce").fillna(0)
+
     total_spend = df["Amount"].sum()
+    curr_budget = float(curr_budget)  # ensure curr_budget is float
+
     remained_budget = curr_budget - total_spend
 
     col1, col2, col3 = st.columns(3)

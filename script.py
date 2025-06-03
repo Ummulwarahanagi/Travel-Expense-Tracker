@@ -135,7 +135,7 @@ st.markdown('<div class="main">', unsafe_allow_html=True)
 st.title(f"👋 Welcome {username}")
 
 if st.sidebar.button("Logout"):
-    st.experimental_set_query_params()
+    st.query_params
     st.experimental_rerun()
 
 # Budget Sidebar

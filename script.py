@@ -87,7 +87,7 @@ if st.sidebar.button("Convert"):
         st.sidebar.error("Currency pair not supported yet.")
 
 # --- Load User Expenses ---
-df = load_ex_gsheet(gsheet, username)
+df = load_ex_gsheet(gsheet)
 
 # --- Budget Overview Section ---
 st.markdown("📊 **Budget Overview**")

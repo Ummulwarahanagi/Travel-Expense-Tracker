@@ -102,7 +102,7 @@ if not df.empty:
     df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
 
 
-    total_spend = df["Amount"].sum()
+    total_spend = df["amount"].sum()
     curr_budget = float(curr_budget)  # ensure curr_budget is float
 
     remained_budget = curr_budget - total_spend

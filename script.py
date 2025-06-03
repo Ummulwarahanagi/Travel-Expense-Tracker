@@ -30,7 +30,7 @@ if st.sidebar.button("Logout"):
 #Budget Input Sidebar
 st.sidebar.header("Set A Budget")
 
-curr_budget = get_budget(gsheet)
+curr_budget = get_budget(gsheet,username)
 try:
     curr_budget = float(curr_budget)
 except (TypeError, ValueError):
@@ -46,7 +46,7 @@ budget_input = st.sidebar.number_input(
 
 
 if st.sidebar.button("Update Budget"):
-    set_budget(gsheet, budget_input)
+    set_budget(gsheet,username, budget_input)
     st.sidebar.success("Budget updated successfully")
 
 #Expense Add Form Sidebar
@@ -58,7 +58,7 @@ with st.sidebar.form("add_expense"):
     amount = st.number_input("Amount", min_value=0.0, format="%.2f")
     location = st.text_input("Location")
     if st.form_submit_button("Add"):
-        add_ex_gsheet(gsheet, str(date), category, description, amount, location)
+        add_ex_gsheet(gsheet,username, str(date), category, description, amount, location)
         st.success("Expense added!")
 
 st.sidebar.header("Currency Converter")
@@ -89,7 +89,7 @@ if st.sidebar.button("Convert"):
 
 
 #Load Expense Data
-df = load_ex_gsheet(gsheet)
+df = load_ex_gsheet(gsheet,username)
 
 params = st.query_params
 user = params.get("username", ["Guest"])[0]

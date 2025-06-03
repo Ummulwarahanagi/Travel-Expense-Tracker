@@ -23,7 +23,7 @@ if not username:
 st.title(f"Welcome {username}")
 
 if st.sidebar.button("Logout"):
-    st.experimental_set_query_params()
+    st.query_params
     st.experimental_rerun()
 
 # Sidebar - Budget section

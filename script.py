@@ -100,24 +100,13 @@ with st.sidebar.form("add_expense"):
                 else:
                     inr_equiv = round(amount / rate_to_inr, 2)
 
-                add_ex_gsheet(gsheet, username, str(date), category, description, amount, location, trip, currency,
+                add_ex_gsheet(gsheet, username, str(date), category, description, amount, location, currency,
                               inr_equiv)
                 st.success(f"Expense added! (₹{inr_equiv} INR equivalent)")
 
 # Load Data
 df = load_ex_gsheet(gsheet, username)
 
-# Sidebar - Filter by Trip & Date
-if not df.empty:
-    st.sidebar.markdown("### 🔍 Filter Expenses")
-    trip_names = df["Trip"].dropna().unique().tolist()
-    selected_trip = st.sidebar.selectbox("Select Trip", ["All"] + trip_names)
-    df["Date"] = pd.to_datetime(df["Date"])
-    min_date, max_date = df["Date"].min(), df["Date"].max()
-    date_range = st.sidebar.date_input("Date Range", [min_date, max_date])
-    if selected_trip != "All":
-        df = df[df["Trip"] == selected_trip]
-    df = df[(df["Date"] >= pd.to_datetime(date_range[0])) & (df["Date"] <= pd.to_datetime(date_range[1]))]
 
 # Budget Overview Section
 st.markdown("## Budget Overview")

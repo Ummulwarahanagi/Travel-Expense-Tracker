@@ -63,7 +63,7 @@ with st.sidebar.form("add_expense"):
     amount = st.number_input("Amount", min_value=0.0, format="%.2f")
     location = st.text_input("Location")
     if st.form_submit_button("Add"):
-        add_expense_with_trip(
+        add_ex_gsheet(
             gsheet,
             username,
             str(date),
@@ -125,7 +125,7 @@ if st.sidebar.button("Convert"):
 
 
 # Load Expense Data
-df = load_expenses_with_trip(gsheet, username, trip=current_trip)
+df = load_ex_gsheet(gsheet, username, trip=current_trip)
 
 
 params = st.query_params
@@ -193,7 +193,7 @@ if not df.empty:
                 )
                 u_loc = st.text_input("Location", key="u_loc")
                 if st.form_submit_button("Update"):
-                    update_expense_with_trip(
+                    update_expense(
                         gsheet,
                         int(update_row),
                         str(u_date),

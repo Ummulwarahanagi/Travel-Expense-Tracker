@@ -105,8 +105,8 @@ def get_budget(sheet: gspread.Spreadsheet, username: str) -> float:
                 return float(row["Budget"])
             except ValueError:
                 return 0.0
-    return 0.0  # default if not found
- def add_expense_with_trip(sheet, username, date, category, description, amount, location, trip="General"):
+    return 0.0  # default if not foun
+def add_expense_with_trip(sheet, username, date, category, description, amount, location, trip="General"):
     ws = sheet.worksheet(SHEET_NAME)
     ws.append_row([username, date, category, description, float(amount), location, trip])
 

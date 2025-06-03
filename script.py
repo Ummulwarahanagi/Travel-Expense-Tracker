@@ -78,7 +78,6 @@ with st.sidebar.form("add_expense"):
             description,
             amount,
             location,
-            trip=current_trip,
         )
         st.success("Expense added!")
 
@@ -132,7 +131,7 @@ if st.sidebar.button("Convert"):
 
 
 # Load Expense Data
-df = load_ex_gsheet(gsheet, username, trip=current_trip)
+df = load_ex_gsheet(gsheet, username)
 
 
 params = st.query_params
@@ -208,7 +207,6 @@ if not df.empty:
                         u_desc,
                         u_amt,
                         u_loc,
-                        trip=current_trip,
                     )
                     st.success(f"Updated expense {int(update_row)}.")
 

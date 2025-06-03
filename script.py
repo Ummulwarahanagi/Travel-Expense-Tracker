@@ -1,11 +1,5 @@
 import streamlit as st
 import pandas as pd
-from streamlit_webrtc import webrtc_streamer
-import speech_recognition as sr
-import re
-import tempfile
-import os
-from urllib.parse import parse_qs
 from google_sheets_utils import (
     connect_sheet,
     add_ex_gsheet,

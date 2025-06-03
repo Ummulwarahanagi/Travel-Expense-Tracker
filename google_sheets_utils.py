@@ -34,8 +34,6 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     ws = sheet.worksheet(SHEET_NAME)
     data = ws.get_all_records()
     df = pd.DataFrame(data)
-     # ✅ Normalize column names to avoid KeyError
-    df.columns = [col.strip().capitalize() for col in df.columns]
 
     # Filter by username
     df = df[df["username"] == username]

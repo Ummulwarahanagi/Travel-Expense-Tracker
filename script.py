@@ -43,7 +43,7 @@ if curr_budget is None or not isinstance(curr_budget, (int, float)):
 budget_input = st.sidebar.number_input("Budget :", min_value=0.0, value=curr_budget, step=100.0, format="%.2f")
 
 if st.sidebar.button("Update Budget"):
-    set_budget(gsheet, username, budget_input)
+    set_budget(gsheet, budget_input)
     st.sidebar.success("Budget updated successfully")
 
 # --- Add Expense Sidebar ---

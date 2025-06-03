@@ -1,6 +1,15 @@
 import streamlit as st
 import pandas as pd
-from google_sheets_utils import connect_sheet, add_ex_gsheet, load_ex_gsheet, delete_expense, update_expense, set_budget, get_budget
+from urllib.parse import parse_qs
+from google_sheets_utils import (
+    connect_sheet,
+    add_ex_gsheet,
+    load_ex_gsheet,
+    delete_expense,
+    update_expense,
+    set_budget,
+    get_budget
+)
 import requests
 
 # --- Streamlit Page Config ---
@@ -47,7 +56,7 @@ with st.sidebar.form("add_expense"):
     location = st.text_input("Location")
 
     if st.form_submit_button("Add"):
-        add_ex_gsheet(gsheet, username, str(date), category, description, amount, location,"INR")
+        add_ex_gsheet(gsheet, username, str(date), category, description, amount, location)
         st.success("Expense added!")
 
 # --- Currency Converter Sidebar ---
@@ -139,4 +148,4 @@ if not df.empty:
             else:
                 st.warning("No data available to update.")
 else:
-    st.info("No expenses added. Use the sidebar to start tracking your expenses.") 
+    st.info("No expenses added. Use the sidebar to start tracking your expenses.")

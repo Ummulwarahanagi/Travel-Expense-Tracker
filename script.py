@@ -1,14 +1,6 @@
 import streamlit as st
 import pandas as pd
-from google_sheets_utils import(
-    connect_sheet,
-    add_ex_gsheet,
-    load_ex_gsheet,
-    delete_expense,
-    update_expense,
-    set_budget,
-    get_budget
-)
+from google_sheets_utils import connect_sheet, add_ex_gsheet, load_ex_gsheet, delete_expense, update_expense, set_budget, get_budget
 import requests
 
 # --- Streamlit Page Config ---

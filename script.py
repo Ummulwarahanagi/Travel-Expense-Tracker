@@ -36,7 +36,7 @@ if st.sidebar.button("Logout"):
 # --- Budget Sidebar ---
 st.sidebar.header("💰 Set Your Budget")
 
-curr_budget = get_budget(gsheet, username)
+curr_budget = get_budget(gsheet)
 if curr_budget is None or not isinstance(curr_budget, (int, float)):
     curr_budget = 0.0
 

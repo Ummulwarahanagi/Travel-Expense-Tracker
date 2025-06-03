@@ -1,5 +1,10 @@
 import streamlit as st
 import pandas as pd
+import requests
+import json
+import os
+import datetime
+
 from google_sheets_utils import (
     connect_sheet,
     add_ex_gsheet,
@@ -11,6 +16,24 @@ from google_sheets_utils import (
 )
 
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
+
+# ------------------ Currency Conversion ------------------
+CACHE_FILE = "currency_rates.json"
+
+def get_exchange_rates(base="INR"):
+    if os.path.exists(CACHE_FILE):
+        with open(CACHE_FILE, "r") as f:
+            cache = json.load(f)
+            if cache["date"] == str(datetime.date.today()):
+                return cache["rates"]
+    url = f"https://api.exchangerate-api.com/v4/latest/{base}"
+    response = requests.get(url)
+    data = response.json()
+    with open(CACHE_FILE, "w") as f:
+        json.dump({"date": str(datetime.date.today()), "rates": data["rates"]}, f)
+    return data["rates"]
+
+# ---------------------------------------------------------
 
 gsheet = connect_sheet()
 query_params = st.experimental_get_query_params()
@@ -42,12 +65,15 @@ with st.sidebar.form("add_expense"):
     category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"])
     description = st.text_input("Description")
     amount = st.number_input("Amount", min_value=0.0, format="%.2f")
+    currency = st.selectbox("Currency", ["INR", "USD", "EUR", "AED", "JPY", "GBP"])  # 🆕
     location = st.text_input("Location")
-    trip = st.text_input("Trip Name")  # ✅ NEW FIELD
+    trip = st.text_input("Trip Name")
 
     if st.form_submit_button("Add"):
-        add_ex_gsheet(gsheet, username, str(date), category, description, amount, location, trip)
-        st.success("Expense added!")
+        rates = get_exchange_rates(currency)
+        inr_equiv = round(amount * rates.get("INR", 1), 2)
+        add_ex_gsheet(gsheet, username, str(date), category, description, amount, location, trip, currency, inr_equiv)
+        st.success(f"Expense added! (₹{inr_equiv} INR)")
 
 # Load Data
 df = load_ex_gsheet(gsheet, username)
@@ -55,24 +81,20 @@ df = load_ex_gsheet(gsheet, username)
 # Sidebar - Filter by Trip & Date
 if not df.empty:
     st.sidebar.markdown("### 🔍 Filter Expenses")
-    
     trip_names = df["Trip"].dropna().unique().tolist()
     selected_trip = st.sidebar.selectbox("Select Trip", ["All"] + trip_names)
-    
     df["Date"] = pd.to_datetime(df["Date"])
     min_date, max_date = df["Date"].min(), df["Date"].max()
     date_range = st.sidebar.date_input("Date Range", [min_date, max_date])
-
     if selected_trip != "All":
         df = df[df["Trip"] == selected_trip]
-
     df = df[(df["Date"] >= pd.to_datetime(date_range[0])) & (df["Date"] <= pd.to_datetime(date_range[1]))]
 
 # Budget Overview Section
 st.markdown("## Budget Overview")
-
 if not df.empty:
-    total_spend = df["Amount"].sum()
+    # Use INR Amount for calculations
+    total_spend = df["INR Amount"].sum() if "INR Amount" in df.columns else df["Amount"].sum()
     remained_budget = curr_budget - total_spend
 
     if selected_trip != "All":
@@ -91,12 +113,12 @@ if not df.empty:
 
     with tabs[1]:
         st.subheader("📌 Category Breakdown")
-        summary = df.groupby("Category")["Amount"].sum().reset_index()
-        st.bar_chart(summary, x="Category", y="Amount")
-
-        summary["% Used"] = (summary["Amount"] / curr_budget * 100).round(2)
+        amount_col = "INR Amount" if "INR Amount" in df.columns else "Amount"
+        summary = df.groupby("Category")[amount_col].sum().reset_index()
+        st.bar_chart(summary, x="Category", y=amount_col)
+        summary["% Used"] = (summary[amount_col] / curr_budget * 100).round(2)
         summary["Status"] = summary["% Used"].apply(lambda x: "✅ OK" if x <= 30 else "⚠️ High")
-        st.dataframe(summary[["Category", "Amount", "% Used", "Status"]])
+        st.dataframe(summary[["Category", amount_col, "% Used", "Status"]])
 
     with tabs[2]:
         st.subheader("🛠️ Manage Expense")
@@ -121,10 +143,13 @@ if not df.empty:
                     u_cat = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"], key="u_cat")
                     u_desc = st.text_input("Description", key="u_desc")
                     u_amt = st.number_input("Amount", min_value=0.0, format="%.2f", key="u_amt")
+                    u_curr = st.selectbox("Currency", ["INR", "USD", "EUR", "AED", "JPY", "GBP"], key="u_curr")
                     u_loc = st.text_input("Location", key="u_loc")
-                    u_trip = st.text_input("Trip Name", key="u_trip")  # ✅ Add to update logic
+                    u_trip = st.text_input("Trip Name", key="u_trip")
                     if st.form_submit_button("Update"):
-                        update_expense(gsheet, int(update_row), username, str(u_date), u_cat, u_desc, u_amt, u_loc, u_trip)
+                        rates = get_exchange_rates(u_curr)
+                        u_inr = round(u_amt * rates.get("INR", 1), 2)
+                        update_expense(gsheet, int(update_row), username, str(u_date), u_cat, u_desc, u_amt, u_loc, u_trip, u_curr, u_inr)
                         st.success(f"Updated expense in row {int(update_row)}")
                         st.rerun()
             else:
@@ -139,23 +164,24 @@ if not df.empty:
         if df.empty:
             return [("No insights available. Add some expenses first.", "info")]
 
-        total_spent = df["Amount"].sum()
-        daily_avg = df.groupby("Date")["Amount"].sum().mean()
+        amount_col = "INR Amount" if "INR Amount" in df.columns else "Amount"
+        total_spent = df[amount_col].sum()
+        daily_avg = df.groupby("Date")[amount_col].sum().mean()
 
         if total_spent > budget:
             insights.append(("🚨 You’ve exceeded your total budget. Consider reviewing high-expense categories.", "danger"))
         elif budget - total_spent < budget * 0.2:
             insights.append(("⚠️ You're close to exhausting your budget. Plan remaining days carefully.", "warning"))
 
-        food_exp = df[df["Category"] == "Food"]["Amount"].sum()
+        food_exp = df[df["Category"] == "Food"][amount_col].sum()
         if food_exp > total_spent * 0.3:
             insights.append(("🍽️ High food expenses — try exploring cheaper local dining options.", "warning"))
 
-        hotel_exp = df[df["Category"] == "Hotels"]["Amount"].sum()
+        hotel_exp = df[df["Category"] == "Hotels"][amount_col].sum()
         if hotel_exp > total_spent * 0.4:
             insights.append(("🏨 Hotels are taking a big chunk — check for cheaper stays next time.", "warning"))
 
-        transport_exp = df[df["Category"] == "Transport"]["Amount"].sum()
+        transport_exp = df[df["Category"] == "Transport"][amount_col].sum()
         if transport_exp < total_spent * 0.1:
             insights.append(("🚗 Nice! You’re saving on transport. Keep it up!", "success"))
 

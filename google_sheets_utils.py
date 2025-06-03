@@ -95,7 +95,7 @@ def set_budget(sheet: gspread.Spreadsheet, username: str, amount: float) -> None
     ws = get_budget_worksheet(sheet)
     data = ws.get_all_records()
     for idx, row in enumerate(data, start=2):
-        if row["Username"] == username:
+        if row["username"] == username:
             ws.update(f"B{idx}", [[float(amount)]])
             return
     # If not found, append new row

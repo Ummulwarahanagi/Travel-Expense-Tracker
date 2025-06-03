@@ -59,7 +59,7 @@ curr_budget = get_budget(gsheet, username) or 0.0
 budget_input = st.sidebar.number_input("Budget (INR):", min_value=0.0, value=curr_budget, step=100.0, format="%.2f")
 if st.sidebar.button("Update Budget"):
     set_budget(gsheet, username, budget_input)
-    st.sidebar.success("Budget updated!")
+    st.experimental_rerun()  # <- This will reload with the updated budget
 
 # Sidebar - Add Expense Form
 st.sidebar.header("Add Expense")

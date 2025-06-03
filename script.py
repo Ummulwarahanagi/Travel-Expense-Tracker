@@ -14,6 +14,32 @@ import requests
 # --- Streamlit Page Config ---
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 
+# --- Custom CSS for color & style ---
+st.markdown("""
+<style>
+    .insight-box {
+        background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
+        border-radius: 12px;
+        padding: 15px 20px;
+        margin-bottom: 12px;
+        color: white;
+        font-weight: 600;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    }
+    .budget-metric {
+        background-color: #f0f2f6;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+    }
+    .category-bar {
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # --- Connect to Google Sheet ---
 gsheet = connect_sheet()
 
@@ -25,7 +51,7 @@ if not username:
     st.error("Logged Out")
     st.stop()
 
-st.title(f"Welcome {username}")
+st.title(f"👋 Welcome {username}")
 
 # --- Logout Button ---
 if st.sidebar.button("Logout"):
@@ -96,9 +122,9 @@ if not df.empty:
     remained_budget = curr_budget - total_spend
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("Total Budget", f"₹{curr_budget:,.2f}")
-    col2.metric("Total Spend", f"₹{total_spend:,.2f}")
-    col3.metric("Remaining Amount", f"₹{remained_budget:,.2f}")
+    col1.markdown(f'<div class="budget-metric"><h3>Total Budget</h3><p style="font-size:24px;color:#4B6CB7;">₹{curr_budget:,.2f}</p></div>', unsafe_allow_html=True)
+    col2.markdown(f'<div class="budget-metric"><h3>Total Spend</h3><p style="font-size:24px;color:#FF4B4B;">₹{total_spend:,.2f}</p></div>', unsafe_allow_html=True)
+    col3.markdown(f'<div class="budget-metric"><h3>Remaining Amount</h3><p style="font-size:24px;color:#38A169;">₹{remained_budget:,.2f}</p></div>', unsafe_allow_html=True)
 
     tabs = st.tabs(["📋 All Expenses", "📌 Category Breakdown", "🛠️ Manage Expense"])
 
@@ -161,31 +187,31 @@ if not df.empty:
         daily_avg = df.groupby("Date")["Amount"].sum().mean()
 
         if total_spent > budget:
-            insights.append("🚨 You’ve exceeded your total budget. Consider reviewing high-expense categories.")
+            insights.append(("🚨", "You’ve exceeded your total budget. Consider reviewing high-expense categories.", "#ff4b4b"))
         elif budget - total_spent < budget * 0.2:
-            insights.append("⚠️ You're close to exhausting your budget. Plan remaining days carefully.")
+            insights.append(("⚠️", "You're close to exhausting your budget. Plan remaining days carefully.", "#ffa500"))
 
         food_exp = df[df["Category"] == "Food"]["Amount"].sum()
         if food_exp > total_spent * 0.3:
-            insights.append("🍽️ High food expenses — try exploring cheaper local dining options.")
+            insights.append(("🍽️", "High food expenses — try exploring cheaper local dining options.", "#f9a825"))
 
         hotel_exp = df[df["Category"] == "Hotels"]["Amount"].sum()
         if hotel_exp > total_spent * 0.4:
-            insights.append("🏨 Hotels are taking a big chunk — check for cheaper stays next time.")
+            insights.append(("🏨", "Hotels are taking a big chunk — check for cheaper stays next time.", "#1e88e5"))
 
         transport_exp = df[df["Category"] == "Transport"]["Amount"].sum()
         if transport_exp < total_spent * 0.1:
-            insights.append("🚗 Nice! You’re saving on transport. Keep it up!")
+            insights.append(("🚗", "Nice! You’re saving on transport. Keep it up!", "#43a047"))
 
         if daily_avg > budget / 10:
-            insights.append(f"📈 Your average daily spend is ₹{daily_avg:.2f} — adjust to stay on track.")
+            insights.append(("📈", f"Your average daily spend is ₹{daily_avg:.2f} — adjust to stay on track.", "#6a1b9a"))
 
         return insights
 
     insights = generate_insights(df, curr_budget)
     if insights:
-        for tip in insights:
-            st.info(tip)
+        for icon, tip, color in insights:
+            st.markdown(f'<div class="insight-box" style="border-left: 6px solid {color};">{icon} {tip}</div>', unsafe_allow_html=True)
     else:
         st.info("No insights available yet. Add some expenses.")
 

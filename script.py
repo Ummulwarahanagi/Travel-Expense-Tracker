@@ -148,7 +148,8 @@ if not df.empty:
                 st.warning("No data available to update.")
 
     # --- Smart Spend Insights ---
-    st.markdown("💡 **Smart Spend Insights**")
+    st.markdown("---")
+    st.subheader("💡 Smart Spend Insights")
 
     def generate_insights(df, budget):
         insights = []
@@ -182,8 +183,14 @@ if not df.empty:
         return insights
 
     insights = generate_insights(df, curr_budget)
-    for tip in insights:
-        st.write(tip)
+    if insights:
+        for tip in insights:
+            st.info(tip)
+    else:
+        st.info("No insights available yet. Add some expenses.")
 
 else:
-    st.info("No expenses added. Use the sidebar to start tracking your expenses.")
+    st.info("No expenses added yet. Use the sidebar to start tracking your expenses.")
+    st.markdown("---")
+    st.subheader("💡 Smart Spend Insights")
+    st.info("No insights available yet. Add some expenses to see tips here.")

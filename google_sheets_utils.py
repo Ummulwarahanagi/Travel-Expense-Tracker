@@ -40,7 +40,7 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
 
     # Normalize columns: strip spaces and lowercase
     df.columns = [col.strip().lower() for col in df.columns]
-    print("Normalized columns:", df.columns.tolist())
+    st.write("Normalized columns:", df.columns.tolist())
 
     if "username" not in df.columns:
         raise ValueError("Column 'username' not found in the sheet.")

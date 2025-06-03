@@ -114,7 +114,7 @@ def get_budget(sheet: gspread.Spreadsheet, username: str) -> float:
     ws = get_budget_worksheet(sheet)
     data = ws.get_all_records()
     for row in data:
-        if row["Username"] == username:
+        if row["username"] == username:
             try:
                 return float(row["Budget"])
             except ValueError:

@@ -55,12 +55,6 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
 
     return df
 
-
-
-
-
-
-
 def add_ex_gsheet(sheet: gspread.Spreadsheet, username: str, date: str, category: str, description: str, amount: float, location: str) -> None:
     ws = sheet.worksheet(SHEET_NAME)
     ws.append_row([username, date, category, description, float(amount), location])
@@ -112,4 +106,25 @@ def get_budget(sheet: gspread.Spreadsheet, username: str) -> float:
             except ValueError:
                 return 0.0
     return 0.0  # default if not found
- 
+ def add_expense_with_trip(sheet, username, date, category, description, amount, location, trip="General"):
+    ws = sheet.worksheet(SHEET_NAME)
+    ws.append_row([username, date, category, description, float(amount), location, trip])
+
+def load_expenses_with_trip(sheet, username, trip=None):
+    ws = sheet.worksheet(SHEET_NAME)
+    raw_data = ws.get_all_values()
+    header = [col.strip().lower() for col in raw_data[0]]
+    data_rows = raw_data[1:]
+    df = pd.DataFrame(data_rows, columns=header)
+    df = df[df["username"] == username]
+    df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
+    df["Row"] = list(range(2, 2 + len(df)))
+    if trip:
+        df = df[df["trip"] == trip]
+    return df
+
+def update_expense_with_trip(sheet, row_number, date, category, description, amount, location, trip="General"):
+    ws = sheet.worksheet(SHEET_NAME)
+    ws.update(f"B{row_number}:F{row_number}", [[date, category, description, float(amount), location]])
+    ws.update(f"G{row_number}", trip)
+

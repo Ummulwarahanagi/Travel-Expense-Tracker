@@ -79,12 +79,12 @@ def get_user_budget(sheet: gspread.Spreadsheet, username: str) -> float:
 
 
 def add_ex_gsheet(sheet: gspread.Spreadsheet, username: str, date: str, category: str, description: str,
-                  amount: float, location: str, trip: str, currency: str, inr_amount: float) -> None:
+                  amount: float, location: str,currency: str, inr_amount: float) -> None:
     ws = sheet.worksheet(SHEET_NAME)
     ws.append_row([username, date, category, description, float(amount), location, trip, currency, float(inr_amount)])
     logger.info(
         "Expense added for '%s': %s | %s | %.2f %s | %s | %s | %.2f INR",
-        username, date, category, amount, currency, location, trip, inr_amount
+        username, date, category, amount, currency, location, inr_amount
     )
 
 
@@ -98,11 +98,11 @@ def delete_expense(sheet: gspread.Spreadsheet, row_number: int) -> None:
 
 
 def update_expense(sheet: gspread.Spreadsheet, row_number: int, username: str, date: str, category: str,
-                   description: str, amount: float, location: str, trip: str, currency: str, inr_amount: float) -> None:
+                   description: str, amount: float, location: str, currency: str, inr_amount: float) -> None:
     try:
         ws = sheet.worksheet(SHEET_NAME)
         ws.update(f"A{row_number}:I{row_number}",
-                  [[username, date, category, description, float(amount), location, trip, currency, float(inr_amount)]])
+                  [[username, date, category, description, float(amount), location, currency, float(inr_amount)]])
         logger.info("Updated row %d for user '%s'.", row_number, username)
     except gspread.exceptions.APIError as e:
         logger.error("Failed to update row %d: %s", row_number, e)
@@ -180,149 +180,3 @@ def get_exchange_rates(base=BASE_CURRENCY):
                 cache = json.load(f)
                 return cache.get("rates", {})
         return {}
-
-
-# --- Streamlit UI ---
-
-st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
-
-gsheet = connect_sheet()
-query_params = st.experimental_get_query_params()
-username_list = query_params.get("username")
-username = username_list[0] if username_list else None
-
-if not username:
-    st.error("Logged Out - No username provided")
-    st.stop()
-
-st.title(f"Welcome {username}")
-
-if st.sidebar.button("Logout"):
-    st.experimental_set_query_params()
-    st.experimental_rerun()
-
-# Sidebar - Budget section
-st.sidebar.header("Set Your Budget")
-curr_budget = get_budget(gsheet, username) or 0.0
-budget_input = st.sidebar.number_input("Budget (INR):", min_value=0.0, value=curr_budget, step=100.0, format="%.2f")
-if st.sidebar.button("Update Budget"):
-    set_budget(gsheet, username, budget_input)
-    st.sidebar.success("Budget updated!")
-
-# Sidebar - Add Expense Form
-st.sidebar.header("Add Expense")
-with st.sidebar.form("add_expense"):
-    date = st.date_input("Date")
-    category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"])
-    description = st.text_input("Description")
-    amount = st.number_input("Amount", min_value=0.0, format="%.2f")
-    currency = st.selectbox("Currency", ["INR", "USD", "EUR", "AED", "JPY", "GBP"])
-    location = st.text_input("Location")
-    trip = st.text_input("Trip Name")
-
-    if st.form_submit_button("Add"):
-        rates = get_exchange_rates()
-        if not rates:
-            st.error("Failed to fetch currency exchange rates. Try again later.")
-        else:
-            # Convert from selected currency to INR
-            rate_to_inr = rates.get(currency)
-            if rate_to_inr is None:
-                st.error(f"Exchange rate for {currency} not found.")
-            else:
-                # Since rates are relative to base currency (INR), and base=INR,
-                # rates[currency] = how much 1 INR equals currency units,
-                # but exchangerate-api returns rates as 1 base currency = x target currency.
-                # Actually, for base=INR, rates["USD"] means 1 INR = x USD.
-                # We want the inverse: 1 USD = ? INR
-                # So invert the rate to get currency -> INR:
-                # Example: rates['USD'] = 0.012, then 1 USD = 1 / 0.012 INR
-                if currency == BASE_CURRENCY:
-                    inr_equiv = amount
-                else:
-                    inr_equiv = round(amount / rate_to_inr, 2)
-
-                add_ex_gsheet(gsheet, username, str(date), category, description, amount, location, trip, currency,
-                              inr_equiv)
-                st.success(f"Expense added! (₹{inr_equiv} INR equivalent)")
-
-# Load Data
-df = load_ex_gsheet(gsheet, username)
-
-# Sidebar - Filter by Trip & Date
-if not df.empty:
-    st.sidebar.markdown("### 🔍 Filter Expenses")
-    trip_names = df["Trip"].dropna().unique().tolist()
-    selected_trip = st.sidebar.selectbox("Select Trip", ["All"] + trip_names)
-    df["Date"] = pd.to_datetime(df["Date"])
-    min_date, max_date = df["Date"].min(), df["Date"].max()
-    date_range = st.sidebar.date_input("Date Range", [min_date, max_date])
-    if selected_trip != "All":
-        df = df[df["Trip"] == selected_trip]
-    df = df[(df["Date"] >= pd.to_datetime(date_range[0])) & (df["Date"] <= pd.to_datetime(date_range[1]))]
-
-# Budget Overview Section
-st.markdown("## Budget Overview")
-if not df.empty:
-    # Use INR Amount for calculations
-    total_spent = df["INR Amount"].sum()
-    budget = get_budget(gsheet, username)
-    remaining = budget - total_spent
-
-    st.metric(label="Budget (INR)", value=f"₹{budget:,.2f}")
-    st.metric(label="Total Spent (INR)", value=f"₹{total_spent:,.2f}")
-    st.metric(label="Remaining Budget (INR)", value=f"₹{remaining:,.2f}")
-
-    # Bar chart by category (sum INR Amount)
-    cat_df = df.groupby("Category")["INR Amount"].sum().reset_index()
-    st.bar_chart(data=cat_df.set_index("Category"))
-
-    # Table of expenses
-    st.markdown("### Expense Details")
-    st.dataframe(df[["Date", "Category", "Description", "Amount", "Currency", "INR Amount", "Location", "Trip"]])
-
-else:
-    st.info("No expenses found. Please add some expenses.")
-
-# Editing Expenses Section
-if not df.empty:
-    st.markdown("## Edit or Delete Expense")
-
-    with st.form("select_expense_form"):
-        row_options = df.apply(lambda x: f'{x["Date"].strftime("%Y-%m-%d")} | {x["Category"]} | {x["Description"]} | ₹{x["INR Amount"]:.2f}', axis=1)
-        selected_expense = st.selectbox("Select expense to edit/delete:", options=row_options)
-        if st.form_submit_button("Select"):
-            idx = row_options[row_options == selected_expense].index[0]
-            selected_row = df.loc[idx]
-
-            with st.form("edit_expense_form"):
-                new_date = st.date_input("Date", selected_row["Date"])
-                new_category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"], index=["Flights", "Hotels", "Food", "Transport", "Miscellaneous"].index(selected_row["Category"]))
-                new_description = st.text_input("Description", selected_row["Description"])
-                new_amount = st.number_input("Amount", min_value=0.0, value=float(selected_row["Amount"]), format="%.2f")
-                new_currency = st.selectbox("Currency", ["INR", "USD", "EUR", "AED", "JPY", "GBP"], index=["INR", "USD", "EUR", "AED", "JPY", "GBP"].index(selected_row["Currency"]))
-                new_location = st.text_input("Location", selected_row["Location"])
-                new_trip = st.text_input("Trip", selected_row["Trip"])
-
-                if st.form_submit_button("Update Expense"):
-                    rates = get_exchange_rates()
-                    rate_to_inr = rates.get(new_currency)
-                    if rate_to_inr is None:
-                        st.error(f"Exchange rate for {new_currency} not found.")
-                    else:
-                        if new_currency == BASE_CURRENCY:
-                            new_inr = new_amount
-                        else:
-                            new_inr = round(new_amount / rate_to_inr, 2)
-
-                        update_expense(gsheet, selected_row["Row"], username, str(new_date), new_category,
-                                       new_description, new_amount, new_location, new_trip, new_currency, new_inr)
-                        st.success("Expense updated!")
-                        st.experimental_rerun()
-
-                if st.form_submit_button("Delete Expense"):
-                    delete_expense(gsheet, selected_row["Row"])
-                    st.success("Expense deleted!")
-                    st.experimental_rerun()
-else:
-    st.info("No expenses available to edit or delete.")

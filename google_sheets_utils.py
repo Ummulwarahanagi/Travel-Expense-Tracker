@@ -34,20 +34,27 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     data = ws.get_all_records()
     df = pd.DataFrame(data)
 
-    # or use logging
-    # logger.info("Columns from sheet: %s", df.columns.tolist())
-
-    # Normalize columns: strip spaces and lowercase
+    # Normalize columns: strip, lowercase
     df.columns = [col.strip().lower() for col in df.columns]
 
-    if "username" not in df.columns:
-        raise ValueError("Column 'username' not found in the sheet.")
+    # Try matching 'username' column with fuzzy match
+    username_col = None
+    for col in df.columns:
+        if col.replace(" ", "").lower() == "username":
+            username_col = col
+            break
 
-    df = df[df["username"] == username]
+    if not username_col:
+        raise ValueError(f"Could not find a 'username' column. Found columns: {df.columns.tolist()}")
 
+    # Filter by username
+    df = df[df[username_col] == username]
+
+    # Add row number for tracking
     df["Row"] = list(range(2, 2 + len(df)))
 
     return df
+
 
 
 

@@ -35,6 +35,12 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     data = ws.get_all_records()
     df = pd.DataFrame(data)
 
+    # Normalize columns (strip and lowercase)
+    df.columns = [col.strip().lower() for col in df.columns]
+
+    if "username" not in df.columns:
+        raise ValueError("Column 'username' not found in the sheet.")
+
     # Filter by username
     df = df[df["username"] == username]
 
@@ -42,6 +48,7 @@ def load_ex_gsheet(sheet: gspread.Spreadsheet, username: str) -> pd.DataFrame:
     df["Row"] = list(range(2, 2 + len(df)))
 
     return df
+
 
 
 def add_ex_gsheet(sheet: gspread.Spreadsheet, username: str, date: str, category: str, description: str, amount: float, location: str) -> None:

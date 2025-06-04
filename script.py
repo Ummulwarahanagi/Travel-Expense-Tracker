@@ -161,7 +161,7 @@ st.sidebar.markdown("---")
 # --- Logout ---
 if st.sidebar.button("🚪 Logout"):
     st.query_params.clear()
-    st.experimental_rerun()
+    st.rerun()
 
 # --- MAIN AREA ---
 trip_to_display = st.session_state.viewing_trip

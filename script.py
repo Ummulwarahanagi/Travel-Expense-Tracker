@@ -9,9 +9,9 @@ from google_sheets_utils import (
     set_budget,
     get_budget,
     get_user_trips,
-    load_expense_with_trips,
-    add_expense_with_trips,
-    update_expense_with_trips
+    load_expense_with_trip,
+    add_expense_with_trip,
+    update_expense_with_trip
 )
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 st.sidebar.header("🎒 Trip Manager")

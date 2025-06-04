@@ -128,16 +128,16 @@ with st.form("add_expense_form", clear_on_submit=True):
     submitted = st.form_submit_button("Add Expense")
 
     if submitted:
-    add_expense_with_trip(
-        gsheet,
-        username,
-        str(date),
-        category,
-        description,
-        amount,
-        selected_location,
-        trip=active_trip
-    )
+        add_expense_with_trip(
+            gsheet,
+            username,
+            str(date),
+            category,
+            description,
+            amount,
+            selected_location,
+            trip=active_trip
+        )
 
     # 🎉 Show confirmation
     st.success(f"✅ Expense added to `{active_trip}`!")

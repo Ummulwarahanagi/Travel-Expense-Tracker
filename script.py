@@ -26,18 +26,27 @@ gsheet = connect_sheet()
 st.title(f"Welcome {username}")
     
 st.sidebar.header("🎒 Trip Manager")
+
+# Connect Google Sheet and Get Username First
+gsheet = connect_sheet()
+query_params = st.query_params
+username = query_params.get("username", None)
+
 # Fetch user-specific trips dynamically
 user_trips = get_user_trips(gsheet, username)
 default_trips = ["General"]
 all_trips = list(set(user_trips + default_trips))
 
+# Input for New Trip OR select from existing
 trip_input = st.sidebar.text_input("Enter New Trip Name (or leave blank):", "")
-current_trip = trip_input.strip() if trip_input.strip() else st.sidebar.selectbox(
-    "Or Select Existing Trip", options=all_trips, key="current_trip"
-)
-# Store trip in session
-st.session_state.current_trip = current_trip
+if trip_input.strip():
+    current_trip = trip_input.strip()
+else:
+    current_trip = st.sidebar.selectbox("Or Select Existing Trip", options=all_trips, key="current_trip")
+
+# Display selected trip — no need to store in session manually
 st.sidebar.success(f"You're adding expenses for: `{current_trip}`")
+
 
 # --- Logout Button ---
 if st.sidebar.button("Logout"):

@@ -116,18 +116,17 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
         selected_location = location_input
 
         if location_input.strip() and len(location_input.strip()) > 2 and active_trip:
+            # Combine location typed + trip_input (city) to get better search context
+            query = f"{location_input}, {active_trip}"
+            results = nominatim_search(query, limit=5)
 
-    # Combine location typed + trip_input (city) to get better search context
-           query = f"{location_input}, {active_trip}"
-           results = nominatim_search(query, limit=5)
+            if results:
+                options = [res['display_name'] for res in results]
+                chosen = st.selectbox("Select from suggestions", options)
+                if chosen:
+                    selected_location = chosen
 
-           if results:
-              options = [res['display_name'] for res in results]
-              chosen = st.selectbox("Select from suggestions", options)
-              if chosen:
-                 selected_location = chosen
         submitted = st.form_submit_button("Add Expense")
-
         if submitted:
             add_expense_with_trip(
                 gsheet,
@@ -140,7 +139,6 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
                 trip=active_trip
             )
             st.success(f"✅ Expense added to `{active_trip}`!")
-
 st.sidebar.markdown("---")
 
 # --- Currency Converter ---

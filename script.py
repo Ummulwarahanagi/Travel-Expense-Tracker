@@ -141,11 +141,7 @@ with st.form("add_expense_form", clear_on_submit=True):
 
     # 🎉 Show confirmation
     st.success(f"✅ Expense added to `{active_trip}`!")
-    st.balloons()  # Optional visual feedback
 
-    # 🔽 Scroll to the summary section
-    st.experimental_set_query_params(scroll_to="summary")
-    st.markdown('<meta http-equiv="refresh" content="0; URL=#summary">', unsafe_allow_html=True)
 
 
 

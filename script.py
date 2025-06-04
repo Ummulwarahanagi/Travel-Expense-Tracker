@@ -33,9 +33,15 @@ all_trips = sorted(list(set(user_trips + default_trips)))
 trip_input = st.sidebar.text_input("➕ Start New Trip:", key="trip_input")
 existing_trip = st.sidebar.selectbox("📂 View Previous Trips:", options=all_trips, key="trip_select")
 
-# Set Active Trip if new input
+# Determine the default active trip intelligently
 if "active_trip" not in st.session_state:
-    st.session_state.active_trip = "General"
+    if trip_input.strip():
+        st.session_state.active_trip = trip_input.strip()
+    elif user_trips:
+        # Default to last entered trip by user
+        st.session_state.active_trip = sorted(user_trips)[-1]
+    else:
+        st.session_state.active_trip = "General"
 
 if trip_input.strip():
     st.session_state.active_trip = trip_input.strip()

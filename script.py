@@ -35,8 +35,44 @@ def nominatim_search(query, limit=5):
     except Exception as e:
         st.error(f"API error: {e}")
     return []
+# 🔊 Inject Voice Input Microphone JS
+def inject_voice_js():
+    st.components.v1.html("""
+    <script>
+    function attachVoiceInput(fieldId) {
+        const micButton = document.createElement("button");
+        micButton.innerHTML = "🎤";
+        micButton.style.marginLeft = "5px";
+        micButton.onclick = function() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-IN';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
 
+            recognition.start();
+            recognition.onresult = function(event) {
+                const speechResult = event.results[0][0].transcript;
+                const inputElem = document.getElementById(fieldId);
+                if (inputElem) {
+                    inputElem.value = speechResult;
+                    inputElem.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            };
+        };
+
+        const inputElem = document.getElementById(fieldId);
+        if (inputElem && !inputElem.parentNode.querySelector('button')) {
+            inputElem.parentNode.appendChild(micButton);
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        ['trip_input', 'description', 'amount', 'u_desc', 'u_amt', 'u_loc'].forEach(attachVoiceInput);
+    });
+    </script>
+    """, height=0)
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
+inject_voice_js()
 
 params = st.query_params
 username = params.get("username", None)
@@ -45,7 +81,6 @@ if not username:
     st.stop()
 
 gsheet = connect_sheet()
-
 st.markdown(f"<h1 style='text-align:center; color:#2E86C1;'>👋 Welcome, <span style='color:#F39C12;'>{username}</span>!</h1>", unsafe_allow_html=True)
 
 st.sidebar.title("📂 Travel Expense Tracker")

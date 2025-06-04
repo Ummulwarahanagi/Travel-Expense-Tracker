@@ -113,7 +113,6 @@ df = load_expense_with_trip(gsheet, username, trip=trip_to_display)
 if df.empty:
     st.info(f"No expenses found for `{trip_to_display}`.")
 else:
-    st.dataframe(df)
     total = df["amount"].sum() if "amount" in df.columns else 0
     st.success(f"💸 Total spent on `{trip_to_display}`: ₹{total:.2f}")
 

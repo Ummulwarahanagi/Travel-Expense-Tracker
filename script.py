@@ -11,9 +11,9 @@ from google_sheets_utils import (
 
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 
-# --- Get Username from query params ---
-query_params = st.experimental_get_query_params()
-username = query_params.get("username", [None])[0]
+# --- Get Username from st.query_params ---
+params = st.query_params
+username = params.get("username", None)
 
 if not username:
     st.error("Logged Out")
@@ -31,17 +31,18 @@ all_trips = sorted(list(set(user_trips + default_trips)))
 
 # Input for NEW trip
 trip_input = st.sidebar.text_input("➕ Start a New Trip", key="new_trip")
+
 # Select from EXISTING trips
 existing_trip = st.sidebar.selectbox("📜 Or Select Existing Trip", options=all_trips, key="existing_trip")
 
-# Logic: if new trip is entered, prioritize that
+# Prioritize new trip input if given
 current_trip = trip_input.strip() if trip_input.strip() else existing_trip
 st.sidebar.success(f"You're working on: `{current_trip}`")
 
 # Logout
 if st.sidebar.button("Logout"):
-    st.experimental_set_query_params()
-    st.experimental_rerun()
+    st.query_params.clear()
+    st.rerun()
 
 # Budget
 st.sidebar.header("💰 Set Budget")
@@ -86,12 +87,11 @@ if df_expenses.empty:
 else:
     st.dataframe(df_expenses)
 
-    # Optional: Total Expense Summary
+    # Total
     if "amount" in df_expenses.columns:
         total = df_expenses["amount"].sum()
-        st.success(f"Total spent on `{current_trip}`: ₹{total:.2f}")
-
-
+        st.success(f"💸 Total spent on `{current_trip}`: ₹{total:.2f}")
+        
 if df_expenses.empty:
     st.info("No expenses found for this trip.")
 else:

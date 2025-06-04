@@ -116,12 +116,11 @@ if len(location_input.strip()) >= 3:
 st.text("Add Expenses")
 with st.form("add_expense_form", clear_on_submit=True):
     date = st.date_input("Date")
-    category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Sightseeing", "Shopping", "Entertainment", "Fuel", "Groceries","Tips", "Entry Tickets", "Snacks", "Gifts", "Local Commute", "Laundry", "Medical", "SIM/Internet","Miscellaneous"])
+    category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport","Miscellaneous"])
     description = st.text_input("Description")
     st.text(f"📍 Selected Location: {selected_location}")
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
     submitted = st.form_submit_button("Add Expense")
-
     if submitted:
         add_expense_with_trip(
             gsheet, username, str(date), category, description, amount, selected_location, trip=active_trip

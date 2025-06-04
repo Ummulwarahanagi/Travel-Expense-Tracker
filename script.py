@@ -118,12 +118,6 @@ with st.form("add_expense_form", clear_on_submit=True):
     date = st.date_input("Date")
     category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Sightseeing", "Shopping", "Entertainment", "Fuel", "Groceries", 
     "Tips", "Entry Tickets", "Snacks", "Gifts", "Local Commute", "Laundry", "Medical", "SIM/Internet","Miscellaneous"])
-    selected_category = st.selectbox("Category", category + ["Other"])
-    if selected_category == "Other":
-        custom_category = st.text_input("Enter Custom Category")
-        category = custom_category.strip() if custom_category.strip() else "Uncategorized"
-    else:
-        category = selected_category
     description = st.text_input("Description")
     st.text(f"📍 Selected Location: {selected_location}")
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")

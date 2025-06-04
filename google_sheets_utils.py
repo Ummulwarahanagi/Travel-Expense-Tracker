@@ -126,7 +126,8 @@ def load_expense_with_trip(sheet, username, trip=None):
 def update_expense_with_trip(sheet, row_number, date, category, description, amount, location, trip="General"):
     ws = sheet.worksheet(SHEET_NAME)
     ws.update(f"B{row_number}:F{row_number}", [[date, category, description, float(amount), location]])
-    ws.update(f"G{row_number}", trip)
+    ws.update(f"G{row_number}", [[trip]])  # Note the double brackets here
+
     
 def get_user_trips(sheet, username):
     try:

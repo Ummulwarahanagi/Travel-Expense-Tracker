@@ -157,8 +157,16 @@ with st.sidebar.expander("💱 Currency Converter", expanded=False):
 st.sidebar.markdown("---")
 
 if st.sidebar.button("🚪 Logout"):
+    # Clear all session state keys (or just the ones related to login)
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+        
+    # Clear URL query parameters
     st.experimental_set_query_params()
+
+    # Rerun app to reflect logout
     st.experimental_rerun()
+
 
 trip_to_display = st.session_state.viewing_trip
 df = load_expense_with_trip(gsheet, username, trip=trip_to_display)

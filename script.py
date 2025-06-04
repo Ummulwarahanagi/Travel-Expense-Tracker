@@ -106,10 +106,9 @@ suggestions = []
 
 if len(location_input.strip()) >= 3:
     query = f"{location_input}, {active_trip}"
-    st.write("Search query:", query)  # Debug
+    st.write("Search for:", query)  # Debug
     results = nominatim_search(query)
     suggestions = [res['display_name'] for res in results]
-    st.write("Results:", suggestions)  # Debug
     if suggestions:
         selected_location = st.selectbox("🔽 Suggestions", suggestions, key="location_suggestions")
     else:

@@ -84,7 +84,6 @@ with st.sidebar.expander("🎒 Trip Manager", expanded=True):
 
 st.sidebar.markdown("---")
 
-# --- Budget and Add Expense ---
 with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
     curr_budget = get_budget(gsheet, username)
     try:
@@ -101,28 +100,30 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
     st.markdown("---")
     st.subheader("➕ Add Expense")
 
-    # Real-time location suggestion
-    location_input = st.text_input("📍 Location (start typing...)", key="live_loc_input")
-    selected_location = location_input
-
-    suggestions = []
-    if len(location_input.strip()) >= 3:
-        query = f"{location_input}, {active_trip}"
-        results = nominatim_search(query)
-        suggestions = [res['display_name'] for res in results]
-        if suggestions:
-            selected_location = st.selectbox("🔽 Suggestions", suggestions)
-        else:
-            st.info("No matching locations found.")
-
-    # Expense form
+    # Add expense form including location input & suggestions
     with st.form("add_expense_form", clear_on_submit=True):
         date = st.date_input("Date")
         category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"])
         description = st.text_input("Description")
+
+        # Location input + suggestions inside the form
+        location_input = st.text_input("📍 Location (start typing...)", key="live_loc_input")
+        selected_location = location_input
+
+        suggestions = []
+        if len(location_input.strip()) >= 3:
+            query = f"{location_input}, {active_trip}"
+            results = nominatim_search(query)
+            suggestions = [res['display_name'] for res in results]
+            if suggestions:
+                selected_location = st.selectbox("🔽 Suggestions", suggestions, key="location_suggestions")
+            else:
+                st.info("No matching locations found.")
+
         amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
 
         submitted = st.form_submit_button("Add Expense")
+
         if submitted:
             add_expense_with_trip(
                 gsheet,
@@ -135,6 +136,7 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
                 trip=active_trip
             )
             st.success(f"✅ Expense added to `{active_trip}`!")
+
 
 st.sidebar.markdown("---")
 

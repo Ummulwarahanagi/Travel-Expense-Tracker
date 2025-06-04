@@ -168,7 +168,8 @@ if st.sidebar.button("Convert"):
 
 
 # Load Expense Data
-df = load_expense_with_trip(gsheet, username,trip=viewing_trip)
+trip_to_display = st.session_state.viewing_trip
+df = load_expense_with_trip(gsheet, username,trip=trip_to_display)
 
 
 params = st.query_params

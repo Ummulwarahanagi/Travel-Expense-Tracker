@@ -128,17 +128,25 @@ with st.form("add_expense_form", clear_on_submit=True):
     submitted = st.form_submit_button("Add Expense")
 
     if submitted:
-        add_expense_with_trip(
-            gsheet,
-            username,
-            str(date),
-            category,
-            description,
-            amount,
-            selected_location,
-            trip=active_trip
-        )
-        st.success(f"✅ Expense added to `{active_trip}`!")
+    add_expense_with_trip(
+        gsheet,
+        username,
+        str(date),
+        category,
+        description,
+        amount,
+        selected_location,
+        trip=active_trip
+    )
+
+    # 🎉 Show confirmation
+    st.success(f"✅ Expense added to `{active_trip}`!")
+    st.balloons()  # Optional visual feedback
+
+    # 🔽 Scroll to the summary section
+    st.experimental_set_query_params(scroll_to="summary")
+    st.markdown('<meta http-equiv="refresh" content="0; URL=#summary">', unsafe_allow_html=True)
+
 
 
 st.sidebar.markdown("---")
@@ -194,8 +202,10 @@ if st.sidebar.button("🚪 Logout"):
 trip_to_display = st.session_state.viewing_trip
 df = load_expense_with_trip(gsheet, username, trip=trip_to_display)
 
+st.markdown('<a name="summary"></a>', unsafe_allow_html=True)
 st.markdown("---")
 st.markdown(f"<h2 style='color:#34495E;'>📊 Expense Summary for <span style='color:#E67E22;'>{trip_to_display}</span></h2>", unsafe_allow_html=True)
+
 
 if df.empty:
     st.info(f"No expenses found for `{trip_to_display}`. Use the sidebar to add expenses.")

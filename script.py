@@ -116,7 +116,7 @@ if len(location_input.strip()) >= 3:
 st.text("Add Expenses")
 with st.form("add_expense_form", clear_on_submit=True):
     date = st.date_input("Date")
-    category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport","Miscellaneous"])
+    category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport","Miscellaneous","Shoping","Entertainment","Fuel","Medical"])
     description = st.text_input("Description")
     st.text(f"📍 Selected Location: {selected_location}")
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")

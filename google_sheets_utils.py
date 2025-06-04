@@ -127,4 +127,12 @@ def update_expense_with_trip(sheet, row_number, date, category, description, amo
     ws = sheet.worksheet(SHEET_NAME)
     ws.update(f"B{row_number}:F{row_number}", [[date, category, description, float(amount), location]])
     ws.update(f"G{row_number}", trip)
+    
+def get_user_trips(sheet, username):
+    df = load_ex_gsheet(sheet, username)
+    if not df.empty and 'trip' in df.columns:
+        trips = df[df["username"] == username]["trip"].dropna().unique().tolist()
+        return sorted(list(set(trips)))
+    return ["General"]
+
 

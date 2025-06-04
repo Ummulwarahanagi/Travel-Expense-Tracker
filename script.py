@@ -14,6 +14,17 @@ from google_sheets_utils import (
     update_expense_with_trip
 )
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
+# --- Get Username from Query Params ---
+query_params = st.query_params
+username = query_params.get("username", None)
+
+if not username:
+    st.error("Logged Out")
+    st.stop()
+
+gsheet = connect_sheet()
+st.title(f"Welcome {username}")
+    
 st.sidebar.header("🎒 Trip Manager")
 # Fetch user-specific trips dynamically
 user_trips = get_user_trips(gsheet, username)
@@ -24,23 +35,9 @@ trip_input = st.sidebar.text_input("Enter New Trip Name (or leave blank):", "")
 current_trip = trip_input.strip() if trip_input.strip() else st.sidebar.selectbox(
     "Or Select Existing Trip", options=all_trips, key="current_trip"
 )
-
 # Store trip in session
 st.session_state.current_trip = current_trip
 st.sidebar.success(f"You're adding expenses for: `{current_trip}`")
-
-
-gsheet = connect_sheet()
-
-# --- Get Username from Query Params ---
-query_params = st.query_params
-username = query_params.get("username", None)
-
-if not username:
-    st.error("Logged Out")
-    st.stop()
-
-st.title(f"Welcome {username}")
 
 # --- Logout Button ---
 if st.sidebar.button("Logout"):

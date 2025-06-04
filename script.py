@@ -32,22 +32,36 @@ all_trips = sorted(list(set(user_trips + default_trips)))
 trip_input = st.sidebar.text_input("➕ Start New Trip:", key="trip_input")
 existing_trip = st.sidebar.selectbox("📂 View Previous Trips:", options=all_trips, key="trip_select")
 
-# Determine Active Trip
+# Set Active Trip if new input
 if "active_trip" not in st.session_state:
-    st.session_state.active_trip = existing_trip  # default
+    st.session_state.active_trip = existing_trip  # default fallback
 
 if trip_input.strip():
     st.session_state.active_trip = trip_input.strip()
 
 active_trip = st.session_state.active_trip
 
-# Determine what to display
-if existing_trip != active_trip:
-    viewing_trip = existing_trip
-else:
-    viewing_trip = active_trip
+# --- Handle viewing_trip separately ---
+if "viewing_trip" not in st.session_state:
+    st.session_state.viewing_trip = active_trip
 
-# --- Add Expense ---
+# When user selects another trip to view history
+if existing_trip != st.session_state.active_trip:
+    if st.sidebar.button("📖 View Selected Trip History"):
+        st.session_state.viewing_trip = existing_trip
+
+# "Return to active trip" button (only shown when not on active trip)
+if st.session_state.viewing_trip != active_trip:
+    st.subheader(f"📂 Viewing: `{st.session_state.viewing_trip}`")
+    if st.button("🔁 Return to Active Trip"):
+        st.session_state.viewing_trip = active_trip
+        st.rerun()
+else:
+    st.subheader(f"🧳 Active Trip: `{active_trip}`")
+
+# =============================
+# Add Expense
+# =============================
 st.sidebar.header("➕ Add Expense")
 with st.sidebar.form("add_expense"):
     date = st.date_input("Date")
@@ -68,7 +82,9 @@ with st.sidebar.form("add_expense"):
         )
         st.success(f"Expense added to `{active_trip}`!")
 
-# --- Budget ---
+# =============================
+# Budget
+# =============================
 st.sidebar.header("💰 Set Budget")
 curr_budget = get_budget(gsheet, username)
 try:
@@ -81,31 +97,25 @@ if st.sidebar.button("Update Budget"):
     set_budget(gsheet, username, budget_input)
     st.sidebar.success("Budget updated")
 
-# --- Logout ---
+# =============================
+# Logout
+# =============================
 if st.sidebar.button("Logout"):
     st.query_params.clear()
     st.rerun()
 
 # =============================
-# MAIN AREA
+# MAIN AREA - Expense History
 # =============================
+trip_to_display = st.session_state.viewing_trip
+df = load_expense_with_trip(gsheet, username, trip=trip_to_display)
 
-# Show active or history trip's expense
-st.header(f"📂 Expense for Trip: `{viewing_trip}`")
-
-# Show "Switch back to active trip" only when user is viewing other trip
-if viewing_trip != active_trip:
-    if st.button("🔁 Return to Active Trip"):
-        st.rerun()
-df = load_expense_with_trip(gsheet, username, trip=viewing_trip)
 if df.empty:
-    st.info("No expenses found.")
+    st.info(f"No expenses found for `{trip_to_display}`.")
 else:
     st.dataframe(df)
     total = df["amount"].sum() if "amount" in df.columns else 0
-    st.success(f"💸 Total spent on `{viewing_trip}`: ₹{total:.2f}")
-
-
+    st.success(f"💸 Total spent on `{trip_to_display}`: ₹{total:.2f}")
 
 
 st.sidebar.header("Currency Converter")

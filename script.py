@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import requests
 from google_sheets_utils import (
     connect_sheet,
     add_expense_with_trip,
@@ -10,7 +11,6 @@ from google_sheets_utils import (
     update_expense_with_trip,
     delete_expense
 )
-import requests
 
 def nominatim_search(query, limit=5):
     url = "https://nominatim.openstreetmap.org/search"
@@ -25,22 +25,20 @@ def nominatim_search(query, limit=5):
     resp = requests.get(url, params=params, headers=headers)
     if resp.status_code == 200:
         return resp.json()
-    else:
-        return []
+    return []
 
 st.set_page_config(page_title="🧳 Travel Expense Tracker", layout="wide")
 
 # --- Username ---
 params = st.query_params
 username = params.get("username", None)
-
 if not username:
     st.error("⚠️ You are logged out. Please log in.")
     st.stop()
 
 gsheet = connect_sheet()
 
-# Welcome Title
+# Welcome title
 st.markdown(
     f"<h1 style='text-align:center; color:#2E86C1;'>👋 Welcome, <span style='color:#F39C12;'>{username}</span>!</h1>",
     unsafe_allow_html=True
@@ -59,17 +57,13 @@ with st.sidebar.expander("🎒 Trip Manager", expanded=True):
     trip_input = st.text_input("➕ Start New Trip:", key="trip_input")
     existing_trip = st.selectbox("📂 View Previous Trips:", options=all_trips, key="trip_select")
 
-    # Active trip logic
+    # Session state logic
     if "active_trip" not in st.session_state:
-        if trip_input.strip():
-            st.session_state.active_trip = trip_input.strip()
-        elif user_trips:
-            st.session_state.active_trip = sorted(user_trips)[-1]
-        else:
-            st.session_state.active_trip = "General"
+        st.session_state.active_trip = trip_input.strip() or sorted(user_trips)[-1] if user_trips else "General"
 
-    if trip_input.strip():
+    if trip_input.strip() and trip_input.strip() != st.session_state.get("active_trip", ""):
         st.session_state.active_trip = trip_input.strip()
+        st.rerun()
 
     active_trip = st.session_state.active_trip
 
@@ -106,25 +100,27 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
 
     st.markdown("---")
     st.subheader("➕ Add Expense")
+
+    # Real-time location suggestion
+    location_input = st.text_input("📍 Location (start typing...)", key="live_loc_input")
+    selected_location = location_input
+
+    suggestions = []
+    if len(location_input.strip()) >= 3:
+        query = f"{location_input}, {active_trip}"
+        results = nominatim_search(query)
+        suggestions = [res['display_name'] for res in results]
+        if suggestions:
+            selected_location = st.selectbox("🔽 Suggestions", suggestions)
+        else:
+            st.info("No matching locations found.")
+
+    # Expense form
     with st.form("add_expense_form", clear_on_submit=True):
         date = st.date_input("Date")
         category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"])
         description = st.text_input("Description")
         amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
-        location_input = st.text_input("Location")
-
-        selected_location = location_input
-
-        if location_input.strip() and len(location_input.strip()) > 2 and active_trip:
-            # Combine location typed + trip_input (city) to get better search context
-            query = f"{location_input}, {active_trip}"
-            results = nominatim_search(query, limit=5)
-
-            if results:
-                options = [res['display_name'] for res in results]
-                chosen = st.selectbox("Select from suggestions", options)
-                if chosen:
-                    selected_location = chosen
 
         submitted = st.form_submit_button("Add Expense")
         if submitted:
@@ -139,12 +135,12 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
                 trip=active_trip
             )
             st.success(f"✅ Expense added to `{active_trip}`!")
+
 st.sidebar.markdown("---")
 
 # --- Currency Converter ---
 with st.sidebar.expander("💱 Currency Converter", expanded=False):
     currencies = ["USD", "EUR", "INR", "GBP", "JPY", "AUD", "CAD", "CNY"]
-
     from_currency = st.selectbox("From", currencies, index=2)
     to_currency = st.selectbox("To", currencies, index=0)
     conv_amount = st.number_input("Amount", min_value=0.0, value=1.0, step=0.1, format="%.2f")
@@ -192,7 +188,7 @@ if st.sidebar.button("🚪 Logout"):
     st.query_params.clear()
     st.rerun()
 
-# --- MAIN AREA ---
+# --- Main Area: Trip Expenses ---
 trip_to_display = st.session_state.viewing_trip
 df = load_expense_with_trip(gsheet, username, trip=trip_to_display)
 
@@ -202,11 +198,9 @@ st.markdown(f"<h2 style='color:#34495E;'>📊 Expense Summary for <span style='c
 if df.empty:
     st.info(f"No expenses found for `{trip_to_display}`. Use the sidebar to add expenses.")
 else:
-    # Clean amount column and calculate metrics
     df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
     total_spent = df["amount"].sum()
-    curr_budget = float(curr_budget)
-    remaining = curr_budget - total_spent
+    remaining = float(curr_budget) - total_spent
 
     col1, col2, col3 = st.columns(3)
     col1.metric("🎯 Budget", f"₹{curr_budget:,.2f}")
@@ -262,4 +256,3 @@ else:
                         st.success(f"Updated expense row {int(update_row)}.")
             else:
                 st.info("No data to update.")
-

@@ -98,8 +98,6 @@ if viewing_trip != active_trip:
     if st.button("🔁 Return to Active Trip"):
         st.rerun()
 
-df = load_expense_with_trip(gsheet, username, trip=viewing_trip)
-
 if df.empty:
     st.info("No expenses found.")
 else:

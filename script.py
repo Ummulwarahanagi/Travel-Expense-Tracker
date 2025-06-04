@@ -99,43 +99,47 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
         st.success("✅ Budget updated")
 
     st.markdown("---")
-    st.subheader("➕ Add Expense")
+    # Location input OUTSIDE the form for live suggestion
+location_input = st.text_input("📍 Location (start typing...)", key="live_loc_input")
+selected_location = location_input
+suggestions = []
 
-    with st.form("add_expense_form", clear_on_submit=True):
-        date = st.date_input("Date")
-        category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"])
-        description = st.text_input("Description")
+if len(location_input.strip()) >= 3:
+    query = f"{location_input}, {active_trip}"
+    st.write("Search query:", query)  # Debug
+    results = nominatim_search(query)
+    suggestions = [res['display_name'] for res in results]
+    st.write("Results:", suggestions)  # Debug
+    if suggestions:
+        selected_location = st.selectbox("🔽 Suggestions", suggestions, key="location_suggestions")
+    else:
+        st.info("No matching locations found.")
 
-        location_input = st.text_input("📍 Location (start typing...)", key="live_loc_input")
-        selected_location = location_input
+# ✅ FORM starts here (use selected_location)
+with st.form("add_expense_form", clear_on_submit=True):
+    date = st.date_input("Date")
+    category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"])
+    description = st.text_input("Description")
+    
+    # Just show the selected location inside the form
+    st.text(f"📍 Selected Location: {selected_location}")
+    
+    amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
+    submitted = st.form_submit_button("Add Expense")
 
-        suggestions = []
-        if len(location_input.strip()) >= 3:
-            query = f"{location_input}, {active_trip}"
-            results = nominatim_search(query)
-            st.write("Search query:", query)
-            suggestions = [res['display_name'] for res in results]
-            st.write("Results:", suggestions)
-            if suggestions:
-                selected_location = st.selectbox("🔽 Suggestions", suggestions, key="location_suggestions")
-            else:
-                st.info("No matching locations found.")
+    if submitted:
+        add_expense_with_trip(
+            gsheet,
+            username,
+            str(date),
+            category,
+            description,
+            amount,
+            selected_location,
+            trip=active_trip
+        )
+        st.success(f"✅ Expense added to `{active_trip}`!")
 
-        amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
-        submitted = st.form_submit_button("Add Expense")
-
-        if submitted:
-            add_expense_with_trip(
-                gsheet,
-                username,
-                str(date),
-                category,
-                description,
-                amount,
-                selected_location,
-                trip=active_trip
-            )
-            st.success(f"✅ Expense added to `{active_trip}`!")
 
 st.sidebar.markdown("---")
 

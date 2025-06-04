@@ -36,7 +36,7 @@ def nominatim_search(query, limit=5):
         st.error(f"API error: {e}")
     return []
 
-st.set_page_config(page_title="👙 Travel Expense Tracker", layout="wide")
+st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 
 params = st.query_params
 username = params.get("username", None)
@@ -113,7 +113,9 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
         if len(location_input.strip()) >= 3:
             query = f"{location_input}, {active_trip}"
             results = nominatim_search(query)
+            st.write("Search query:", query)
             suggestions = [res['display_name'] for res in results]
+            st.write("Results:", suggestions)
             if suggestions:
                 selected_location = st.selectbox("🔽 Suggestions", suggestions, key="location_suggestions")
             else:

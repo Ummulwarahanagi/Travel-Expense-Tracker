@@ -117,12 +117,6 @@ st.text("Add Expenses")
 with st.form("add_expense_form", clear_on_submit=True):
     date = st.date_input("Date")
     categories = ["Flights", "Hotels", "Food", "Transport","Miscellaneous","Shoping","Entertainment","Fuel","Medical"]
-    select_category=st.selectbox("Category",categories+["Others"])
-    if select_category=="Others":
-        custom_category=st.text_input("Enter a Custom Category")
-        category=custom_category.strip() if custom_category.strip() else "Uncategorized"
-    else:
-        category=select_category
     description = st.text_input("Description")
     st.text(f"📍 Selected Location: {selected_location}")
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")

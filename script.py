@@ -41,17 +41,17 @@ st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 params = st.query_params
 username = params.get("username", None)
 if not username:
-    st.error("\u26a0\ufe0f You are logged out. Please log in.")
+    st.error("⚠️ You are logged out. Please log in.")
     st.stop()
 
 gsheet = connect_sheet()
 
 st.markdown(f"<h1 style='text-align:center; color:#2E86C1;'>👋 Welcome, <span style='color:#F39C12;'>{username}</span>!</h1>", unsafe_allow_html=True)
 
-st.sidebar.title("🗂 Travel Expense Tracker")
+st.sidebar.title("📂 Travel Expense Tracker")
 st.sidebar.markdown("---")
 
-with st.sidebar.expander("💼 Trip Manager", expanded=True):
+with st.sidebar.expander("🗂 Trip Manager", expanded=True):
     user_trips = get_user_trips(gsheet, username)
     default_trips = ["General"]
     all_trips = sorted(set(user_trips + default_trips))
@@ -64,7 +64,7 @@ with st.sidebar.expander("💼 Trip Manager", expanded=True):
 
     if trip_input.strip() and trip_input.strip() != st.session_state.get("active_trip", ""):
         st.session_state.active_trip = trip_input.strip()
-        st.rerun()
+        st.experimental_rerun()
 
     active_trip = st.session_state.active_trip
 
@@ -76,12 +76,12 @@ with st.sidebar.expander("💼 Trip Manager", expanded=True):
             st.session_state.viewing_trip = existing_trip
 
     if st.session_state.viewing_trip != active_trip:
-        st.markdown(f"### 📂 Viewing Trip: {st.session_state.viewing_trip}")
-        if st.button("🔁 Return to Active Trip"):
+        st.markdown(f"### 📂 Viewing Trip: `{st.session_state.viewing_trip}`")
+        if st.button("🔄 Return to Active Trip"):
             st.session_state.viewing_trip = active_trip
-            st.rerun()
+            st.experimental_rerun()
     else:
-        st.markdown(f"### 🧳️ Active Trip: {active_trip}")
+        st.markdown(f"### 🗺️ Active Trip: `{active_trip}`")
 
 st.sidebar.markdown("---")
 
@@ -99,14 +99,13 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
         st.success("✅ Budget updated")
 
     st.markdown("---")
-    # Location input OUTSIDE the form for live suggestion
+
 location_input = st.text_input("📍 Location (start typing... hit enter)", key="live_loc_input")
 selected_location = location_input
 suggestions = []
 
 if len(location_input.strip()) >= 3:
     query = f"{location_input}, {active_trip}"
-    st.write("Search for:", query)  # Debug
     results = nominatim_search(query)
     suggestions = [res['display_name'] for res in results]
     if suggestions:
@@ -114,40 +113,27 @@ if len(location_input.strip()) >= 3:
     else:
         st.info("No matching locations found.")
 
-# ✅ FORM starts here (use selected_location)
 st.text("Add Expenses")
 with st.form("add_expense_form", clear_on_submit=True):
     date = st.date_input("Date")
     category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"])
     description = st.text_input("Description")
-    
-    # Just show the selected location inside the form
     st.text(f"📍 Selected Location: {selected_location}")
-    
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
     submitted = st.form_submit_button("Add Expense")
 
     if submitted:
         add_expense_with_trip(
-            gsheet,
-            username,
-            str(date),
-            category,
-            description,
-            amount,
-            selected_location,
-            trip=active_trip
+            gsheet, username, str(date), category, description, amount, selected_location, trip=active_trip
         )
+        st.success(f"✅ Expense added to `{active_trip}`!")
+        st.balloons()
+        st.experimental_set_query_params(scroll_to="summary")
 
-    # 🎉 Show confirmation
-    st.success(f"✅ Expense added to {active_trip}!")
-    st.balloons()  # Optional visual feedback
-
-    # 🔽 Scroll to the summary section
-    st.experimental_set_query_params(scroll_to="summary")
-    st.markdown('<meta http-equiv="refresh" content="0; URL=#summary">', unsafe_allow_html=True)
-
-
+params = st.query_params
+if params.get("scroll_to") == "summary":
+    st.markdown('<a name="summary"></a>', unsafe_allow_html=True)
+    st.write("")
 
 st.sidebar.markdown("---")
 
@@ -159,32 +145,15 @@ with st.sidebar.expander("💱 Currency Converter", expanded=False):
 
     if st.button("Convert"):
         example_rates = {
-            ("INR", "USD"): 0.012,
-            ("INR", "EUR"): 0.011,
-            ("INR", "GBP"): 0.0098,
-            ("INR", "JPY"): 1.57,
-            ("INR", "AUD"): 0.018,
-            ("INR", "CAD"): 0.016,
-            ("INR", "CNY"): 0.083,
-            ("USD", "INR"): 82.5,
-            ("EUR", "INR"): 88.5,
-            ("GBP", "INR"): 102.0,
-            ("JPY", "INR"): 0.64,
-            ("AUD", "INR"): 56.0,
-            ("CAD", "INR"): 61.5,
-            ("CNY", "INR"): 12.0,
-            ("EUR", "USD"): 1.1,
-            ("USD", "EUR"): 0.91,
-            ("GBP", "USD"): 1.3,
-            ("USD", "GBP"): 0.77,
-            ("JPY", "USD"): 0.007,
-            ("USD", "JPY"): 140,
-            ("AUD", "USD"): 0.67,
-            ("USD", "AUD"): 1.5,
-            ("CAD", "USD"): 0.74,
-            ("USD", "CAD"): 1.35,
-            ("CNY", "USD"): 0.14,
-            ("USD", "CNY"): 7.1,
+            ("INR", "USD"): 0.012, ("INR", "EUR"): 0.011, ("INR", "GBP"): 0.0098,
+            ("INR", "JPY"): 1.57, ("INR", "AUD"): 0.018, ("INR", "CAD"): 0.016,
+            ("INR", "CNY"): 0.083, ("USD", "INR"): 82.5, ("EUR", "INR"): 88.5,
+            ("GBP", "INR"): 102.0, ("JPY", "INR"): 0.64, ("AUD", "INR"): 56.0,
+            ("CAD", "INR"): 61.5, ("CNY", "INR"): 12.0, ("EUR", "USD"): 1.1,
+            ("USD", "EUR"): 0.91, ("GBP", "USD"): 1.3, ("USD", "GBP"): 0.77,
+            ("JPY", "USD"): 0.007, ("USD", "JPY"): 140, ("AUD", "USD"): 0.67,
+            ("USD", "AUD"): 1.5, ("CAD", "USD"): 0.74, ("USD", "CAD"): 1.35,
+            ("CNY", "USD"): 0.14, ("USD", "CNY"): 7.1,
         }
         rate = example_rates.get((from_currency, to_currency))
         if rate:
@@ -196,8 +165,8 @@ with st.sidebar.expander("💱 Currency Converter", expanded=False):
 st.sidebar.markdown("---")
 
 if st.sidebar.button("🚪 Logout"):
-    st.query_params.clear()
-    st.rerun()
+    st.experimental_set_query_params()
+    st.experimental_rerun()
 
 trip_to_display = st.session_state.viewing_trip
 df = load_expense_with_trip(gsheet, username, trip=trip_to_display)
@@ -206,18 +175,17 @@ st.markdown('<a name="summary"></a>', unsafe_allow_html=True)
 st.markdown("---")
 st.markdown(f"<h2 style='color:#34495E;'>📊 Expense Summary for <span style='color:#E67E22;'>{trip_to_display}</span></h2>", unsafe_allow_html=True)
 
-
 if df.empty:
-    st.info(f"No expenses found for {trip_to_display}. Use the sidebar to add expenses.")
+    st.info(f"No expenses found for `{trip_to_display}`. Use the sidebar to add expenses.")
 else:
     df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
     total_spent = df["amount"].sum()
     remaining = float(curr_budget) - total_spent
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("🎯 Budget", f"₹{curr_budget:,.2f}")
+    col1.metric("🌟 Budget", f"₹{curr_budget:,.2f}")
     col2.metric("💸 Total Spent", f"₹{total_spent:,.2f}")
-    col3.metric("🛁 Remaining", f"₹{max(remaining, 0):,.2f}")
+    col3.metric("🎁 Remaining", f"₹{max(remaining, 0):,.2f}")
 
     tabs = st.tabs(["All Expenses", "Category Breakdown", "Manage Expenses"])
 
@@ -256,14 +224,7 @@ else:
                     u_loc = st.text_input("Location", key="u_loc")
                     if st.form_submit_button("Update"):
                         update_expense_with_trip(
-                            gsheet,
-                            int(update_row),
-                            str(u_date),
-                            u_cat,
-                            u_desc,
-                            u_amt,
-                            u_loc,
-                            trip=active_trip
+                            gsheet, int(update_row), str(u_date), u_cat, u_desc, u_amt, u_loc, trip=active_trip
                         )
                         st.success(f"Updated expense row {int(update_row)}.")
             else:

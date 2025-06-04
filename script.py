@@ -10,6 +10,23 @@ from google_sheets_utils import (
     update_expense_with_trip,
     delete_expense
 )
+import requests
+
+def nominatim_search(query, limit=5):
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {
+        "q": query,
+        "format": "json",
+        "addressdetails": 1,
+        "limit": limit,
+        "accept-language": "en",
+    }
+    headers = {"User-Agent": "travel-expense-tracker-app"}
+    resp = requests.get(url, params=params, headers=headers)
+    if resp.status_code == 200:
+        return resp.json()
+    else:
+        return []
 
 st.set_page_config(page_title="🧳 Travel Expense Tracker", layout="wide")
 
@@ -94,7 +111,21 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
         category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"])
         description = st.text_input("Description")
         amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
-        location = st.text_input("Location")
+        location_input = st.text_input("Location")
+
+        selected_location = location_input
+
+        if location_input.strip() and len(location_input.strip()) > 2 and active_trip:
+
+    # Combine location typed + trip_input (city) to get better search context
+           query = f"{location_input}, {active_trip}"
+           results = nominatim_search(query, limit=5)
+
+           if results:
+              options = [res['display_name'] for res in results]
+              chosen = st.selectbox("Select from suggestions", options)
+              if chosen:
+                 selected_location = chosen
         submitted = st.form_submit_button("Add Expense")
 
         if submitted:
@@ -105,7 +136,7 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
                 category,
                 description,
                 amount,
-                location,
+                selected_location,
                 trip=active_trip
             )
             st.success(f"✅ Expense added to `{active_trip}`!")

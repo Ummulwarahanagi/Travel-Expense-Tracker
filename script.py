@@ -35,7 +35,7 @@ existing_trip = st.sidebar.selectbox("📂 View Previous Trips:", options=all_tr
 
 # Set Active Trip if new input
 if "active_trip" not in st.session_state:
-    st.session_state.active_trip = existing_trip  # default fallback
+    st.session_state.active_trip = "General"
 
 if trip_input.strip():
     st.session_state.active_trip = trip_input.strip()

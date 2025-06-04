@@ -100,7 +100,7 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
 
     st.markdown("---")
     # Location input OUTSIDE the form for live suggestion
-location_input = st.text_input("📍 Location (start typing...)", key="live_loc_input")
+location_input = st.text_input("📍 Location (start typing... hit enter)", key="live_loc_input")
 selected_location = location_input
 suggestions = []
 
@@ -115,6 +115,7 @@ if len(location_input.strip()) >= 3:
         st.info("No matching locations found.")
 
 # ✅ FORM starts here (use selected_location)
+st.text("Add Expenses")
 with st.form("add_expense_form", clear_on_submit=True):
     date = st.date_input("Date")
     category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"])

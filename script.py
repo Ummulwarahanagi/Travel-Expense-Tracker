@@ -38,20 +38,11 @@ def nominatim_search(query, limit=5):
 
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 
-# Get query params
-params = st.experimental_get_query_params()
-username = params.get("username", [None])[0]
-
+params = st.query_params
+username = params.get("username", None)
 if not username:
     st.error("\u26a0\ufe0f You are logged out. Please log in.")
     st.stop()
-
-# Clear 'scroll_to' param if present, to avoid repeat scrolling
-if params.get("scroll_to") == ["summary"]:
-    # Reset query params with just username to clear scroll_to
-    st.experimental_set_query_params(username=username)
-    # Reset the flag for adding expense scroll
-    st.session_state["just_added_expense"] = None
 
 gsheet = connect_sheet()
 
@@ -69,11 +60,11 @@ with st.sidebar.expander("💼 Trip Manager", expanded=True):
     existing_trip = st.selectbox("📂 View Previous Trips:", options=all_trips, key="trip_select")
 
     if "active_trip" not in st.session_state:
-        st.session_state.active_trip = trip_input.strip() or (sorted(user_trips)[-1] if user_trips else "General")
+        st.session_state.active_trip = trip_input.strip() or sorted(user_trips)[-1] if user_trips else "General"
 
     if trip_input.strip() and trip_input.strip() != st.session_state.get("active_trip", ""):
         st.session_state.active_trip = trip_input.strip()
-        st.experimental_rerun()
+        st.rerun()
 
     active_trip = st.session_state.active_trip
 
@@ -88,7 +79,7 @@ with st.sidebar.expander("💼 Trip Manager", expanded=True):
         st.markdown(f"### 📂 Viewing Trip: `{st.session_state.viewing_trip}`")
         if st.button("🔁 Return to Active Trip"):
             st.session_state.viewing_trip = active_trip
-            st.experimental_rerun()
+            st.rerun()
     else:
         st.markdown(f"### 🧳️ Active Trip: `{active_trip}`")
 
@@ -107,7 +98,8 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
         set_budget(gsheet, username, budget_input)
         st.success("✅ Budget updated")
 
-# Location input outside form for live suggestions
+    st.markdown("---")
+    # Location input OUTSIDE the form for live suggestion
 location_input = st.text_input("📍 Location (start typing... hit enter)", key="live_loc_input")
 selected_location = location_input
 suggestions = []
@@ -122,15 +114,16 @@ if len(location_input.strip()) >= 3:
     else:
         st.info("No matching locations found.")
 
-# Expense add form
+# ✅ FORM starts here (use selected_location)
 st.text("Add Expenses")
 with st.form("add_expense_form", clear_on_submit=True):
     date = st.date_input("Date")
     category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"])
     description = st.text_input("Description")
-
+    
+    # Just show the selected location inside the form
     st.text(f"📍 Selected Location: {selected_location}")
-
+    
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
     submitted = st.form_submit_button("Add Expense")
 
@@ -145,13 +138,16 @@ with st.form("add_expense_form", clear_on_submit=True):
             selected_location,
             trip=active_trip
         )
-        st.success(f"✅ Expense added to `{active_trip}`!")
-        st.balloons()
 
-        # Only set scroll_to param once to avoid errors
-        if not st.session_state.get("just_added_expense"):
-            st.experimental_set_query_params(username=username, scroll_to="summary")
-            st.session_state["just_added_expense"] = True
+    # 🎉 Show confirmation
+    st.success(f"✅ Expense added to `{active_trip}`!")
+    st.balloons()  # Optional visual feedback
+
+    # 🔽 Scroll to the summary section
+    st.experimental_set_query_params(scroll_to="summary")
+    st.markdown('<meta http-equiv="refresh" content="0; URL=#summary">', unsafe_allow_html=True)
+
+
 
 st.sidebar.markdown("---")
 
@@ -200,8 +196,8 @@ with st.sidebar.expander("💱 Currency Converter", expanded=False):
 st.sidebar.markdown("---")
 
 if st.sidebar.button("🚪 Logout"):
-    st.experimental_set_query_params()
-    st.experimental_rerun()
+    st.query_params.clear()
+    st.rerun()
 
 trip_to_display = st.session_state.viewing_trip
 df = load_expense_with_trip(gsheet, username, trip=trip_to_display)
@@ -209,6 +205,7 @@ df = load_expense_with_trip(gsheet, username, trip=trip_to_display)
 st.markdown('<a name="summary"></a>', unsafe_allow_html=True)
 st.markdown("---")
 st.markdown(f"<h2 style='color:#34495E;'>📊 Expense Summary for <span style='color:#E67E22;'>{trip_to_display}</span></h2>", unsafe_allow_html=True)
+
 
 if df.empty:
     st.info(f"No expenses found for `{trip_to_display}`. Use the sidebar to add expenses.")

@@ -62,6 +62,17 @@ else:
 # =============================
 # Add Expense
 # =============================
+st.sidebar.header("💰 Set Budget")
+curr_budget = get_budget(gsheet, username)
+try:
+    curr_budget = float(curr_budget)
+except:
+    curr_budget = 0.0
+
+budget_input = st.sidebar.number_input("Budget:", min_value=0.0, value=curr_budget, step=100.0)
+if st.sidebar.button("Update Budget"):
+    set_budget(gsheet, username, budget_input)
+    st.sidebar.success("Budget updated")
 st.sidebar.header("➕ Add Expense")
 with st.sidebar.form("add_expense"):
     date = st.date_input("Date")
@@ -81,21 +92,6 @@ with st.sidebar.form("add_expense"):
             trip=active_trip
         )
         st.success(f"Expense added to `{active_trip}`!")
-
-# =============================
-# Budget
-# =============================
-st.sidebar.header("💰 Set Budget")
-curr_budget = get_budget(gsheet, username)
-try:
-    curr_budget = float(curr_budget)
-except:
-    curr_budget = 0.0
-
-budget_input = st.sidebar.number_input("Budget:", min_value=0.0, value=curr_budget, step=100.0)
-if st.sidebar.button("Update Budget"):
-    set_budget(gsheet, username, budget_input)
-    st.sidebar.success("Budget updated")
 
 # =============================
 # Logout

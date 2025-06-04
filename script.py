@@ -241,7 +241,7 @@ if not df.empty:
                         u_desc,
                         u_amt,
                         u_loc,
-                        trip=current_trip
+                        trip=active_trip
                     )
                     st.success(f"Updated expense {int(update_row)}.")
 

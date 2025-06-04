@@ -110,7 +110,7 @@ def add_expense_with_trip(sheet, username, date, category, description, amount, 
     ws = sheet.worksheet(SHEET_NAME)
     ws.append_row([username, date, category, description, float(amount), location, trip])
 
-def load_expenses_with_trip(sheet, username, trip=None):
+def load_expense_with_trip(sheet, username, trip=None):
     ws = sheet.worksheet(SHEET_NAME)
     raw_data = ws.get_all_values()
     header = [col.strip().lower() for col in raw_data[0]]

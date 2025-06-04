@@ -127,14 +127,7 @@ with st.form("add_expense_form", clear_on_submit=True):
             gsheet, username, str(date), category, description, amount, selected_location, trip=active_trip
         )
         st.success(f"✅ Expense added to `{active_trip}`!")
-        st.balloons()
-        st.experimental_set_query_params(scroll_to="summary")
-
-params = st.query_params
-if params.get("scroll_to") == "summary":
-    st.markdown('<a name="summary"></a>', unsafe_allow_html=True)
-    st.write("")
-
+       
 st.sidebar.markdown("---")
 
 with st.sidebar.expander("💱 Currency Converter", expanded=False):

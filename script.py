@@ -7,6 +7,7 @@ from google_sheets_utils import (
     get_user_trips,
     get_budget,
     set_budget,
+    update_expense_with_trip
 )
 
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")

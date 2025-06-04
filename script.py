@@ -11,7 +11,7 @@ from google_sheets_utils import (
 
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 
-# --- Get Username and Connect Sheet ---
+# --- Get Username from query params ---
 query_params = st.experimental_get_query_params()
 username = query_params.get("username", [None])[0]
 
@@ -24,42 +24,39 @@ gsheet = connect_sheet()
 st.title(f"Welcome {username}")
 st.sidebar.header("🎒 Trip Manager")
 
-# Fetch user trips
+# Fetch trips
 user_trips = get_user_trips(gsheet, username)
 default_trips = ["General"]
 all_trips = sorted(list(set(user_trips + default_trips)))
 
-# New trip or existing trip selector
-trip_input = st.sidebar.text_input("Enter New Trip Name (or leave blank):", "")
-if trip_input.strip():
-    current_trip = trip_input.strip()
-else:
-    current_trip = st.sidebar.selectbox("Or Select Existing Trip", options=all_trips, key="current_trip")
+# Input for NEW trip
+trip_input = st.sidebar.text_input("➕ Start a New Trip", key="new_trip")
+# Select from EXISTING trips
+existing_trip = st.sidebar.selectbox("📜 Or Select Existing Trip", options=all_trips, key="existing_trip")
 
-st.sidebar.success(f"You're adding expenses for: `{current_trip}`")
+# Logic: if new trip is entered, prioritize that
+current_trip = trip_input.strip() if trip_input.strip() else existing_trip
+st.sidebar.success(f"You're working on: `{current_trip}`")
 
-# Logout button
+# Logout
 if st.sidebar.button("Logout"):
-    st.experimental_set_query_params()  # clear query params
+    st.experimental_set_query_params()
     st.experimental_rerun()
 
 # Budget
-st.sidebar.header("Set A Budget")
+st.sidebar.header("💰 Set Budget")
 curr_budget = get_budget(gsheet, username)
 try:
     curr_budget = float(curr_budget)
 except (TypeError, ValueError):
     curr_budget = 0.0
 
-budget_input = st.sidebar.number_input(
-    "Budget:", min_value=0.0, value=curr_budget, step=100.0, format="%.2f"
-)
-
+budget_input = st.sidebar.number_input("Budget:", min_value=0.0, value=curr_budget, step=100.0)
 if st.sidebar.button("Update Budget"):
     set_budget(gsheet, username, budget_input)
-    st.sidebar.success("Budget updated successfully")
+    st.sidebar.success("✅ Budget updated")
 
-# Add Expense Form
+# Add Expense
 st.sidebar.header("➕ Add Expense")
 with st.sidebar.form("add_expense"):
     date = st.date_input("Date")
@@ -76,13 +73,24 @@ with st.sidebar.form("add_expense"):
             description,
             amount,
             location,
-            trip=current_trip,
+            trip=current_trip
         )
-        st.success(f"Expense added for trip `{current_trip}`!")
+        st.success(f"✅ Expense added to `{current_trip}`!")
 
-# Show Expense History filtered by current trip
-st.header(f"Expense History for Trip: {current_trip}")
+# View Trip History
+st.header(f"📂 Expense History for: `{current_trip}`")
 df_expenses = load_expense_with_trip(gsheet, username, trip=current_trip)
+
+if df_expenses.empty:
+    st.warning("No expenses found for this trip.")
+else:
+    st.dataframe(df_expenses)
+
+    # Optional: Total Expense Summary
+    if "amount" in df_expenses.columns:
+        total = df_expenses["amount"].sum()
+        st.success(f"Total spent on `{current_trip}`: ₹{total:.2f}")
+
 
 if df_expenses.empty:
     st.info("No expenses found for this trip.")

@@ -11,7 +11,7 @@ from google_sheets_utils import (
 
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 
-# --- Get username ---
+# --- Username ---
 params = st.query_params
 username = params.get("username", None)
 
@@ -21,24 +21,33 @@ if not username:
 
 gsheet = connect_sheet()
 st.title(f"Welcome {username}")
+st.sidebar.header("🎒 Trip Manager")
 
 # --- Fetch user trips ---
 user_trips = get_user_trips(gsheet, username)
 default_trips = ["General"]
 all_trips = sorted(list(set(user_trips + default_trips)))
 
-# --- Sidebar: Add trip + expense ---
-st.sidebar.header("🎒 Trip Manager")
+# --- Get/set Active Trip ---
+trip_input = st.sidebar.text_input("➕ Start New Trip:", key="trip_input")
+existing_trip = st.sidebar.selectbox("📂 View Previous Trips:", options=all_trips, key="trip_select")
 
-trip_input = st.sidebar.text_input("➕ Start a New Trip", key="new_trip")
-existing_trip = st.sidebar.selectbox("📜 Or Select Existing Trip", options=all_trips, key="existing_trip")
+# Determine Active Trip
+if "active_trip" not in st.session_state:
+    st.session_state.active_trip = existing_trip  # default
 
-# Determine active trip
-active_trip = trip_input.strip() if trip_input.strip() else existing_trip
-st.session_state["active_trip"] = active_trip  # store in session
-st.sidebar.success(f"You're working on: `{active_trip}`")
+if trip_input.strip():
+    st.session_state.active_trip = trip_input.strip()
 
-# --- Sidebar: Add expense ---
+active_trip = st.session_state.active_trip
+
+# Determine what to display
+if existing_trip != active_trip:
+    viewing_trip = existing_trip
+else:
+    viewing_trip = active_trip
+
+# --- Add Expense ---
 st.sidebar.header("➕ Add Expense")
 with st.sidebar.form("add_expense"):
     date = st.date_input("Date")
@@ -57,7 +66,7 @@ with st.sidebar.form("add_expense"):
             location,
             trip=active_trip
         )
-        st.success(f"✅ Expense added to `{active_trip}`!")
+        st.success(f"Expense added to `{active_trip}`!")
 
 # --- Budget ---
 st.sidebar.header("💰 Set Budget")
@@ -70,47 +79,34 @@ except:
 budget_input = st.sidebar.number_input("Budget:", min_value=0.0, value=curr_budget, step=100.0)
 if st.sidebar.button("Update Budget"):
     set_budget(gsheet, username, budget_input)
-    st.sidebar.success("✅ Budget updated")
+    st.sidebar.success("Budget updated")
 
 # --- Logout ---
 if st.sidebar.button("Logout"):
     st.query_params.clear()
     st.rerun()
 
-# --- Main Area: Trip View Toggle ---
-st.subheader("🔁 Select View Mode")
+# =============================
+# MAIN AREA
+# =============================
 
-view_mode = st.radio(
-    "Choose a view:",
-    ["👤 View Active Trip", "📂 View Previous Trip"],
-    horizontal=True
-)
+# Show active or history trip's expense
+st.header(f"📂 Expense for Trip: `{viewing_trip}`")
 
-# Active Trip View
-if view_mode == "👤 View Active Trip":
-    st.header(f"📍 Your Active Trip: `{active_trip}`")
-    df = load_expense_with_trip(gsheet, username, trip=active_trip)
+# Show "Switch back to active trip" only when user is viewing other trip
+if viewing_trip != active_trip:
+    if st.button("🔁 Return to Active Trip"):
+        st.rerun()
 
-    if df.empty:
-        st.info("No expenses yet for this trip.")
-    else:
-        st.dataframe(df)
-        total = df["amount"].sum() if "amount" in df.columns else 0
-        st.success(f"💸 Total spent: ₹{total:.2f}")
+df = load_expense_with_trip(gsheet, username, trip=viewing_trip)
 
-# History View
-elif view_mode == "📂 View Previous Trip":
-    history_trip = st.selectbox("Select a previous trip to view:", options=[t for t in all_trips if t != active_trip])
+if df.empty:
+    st.info("No expenses found.")
+else:
+    st.dataframe(df)
+    total = df["amount"].sum() if "amount" in df.columns else 0
+    st.success(f"💸 Total spent on `{viewing_trip}`: ₹{total:.2f}")
 
-    st.header(f"📂 Viewing History: `{history_trip}`")
-    df_hist = load_expense_with_trip(gsheet, username, trip=history_trip)
-
-    if df_hist.empty:
-        st.warning("No expenses found for this trip.")
-    else:
-        st.dataframe(df_hist)
-        total_hist = df_hist["amount"].sum() if "amount" in df_hist.columns else 0
-        st.info(f"💸 Total spent on `{history_trip}`: ₹{total_hist:.2f}")
 
 
 

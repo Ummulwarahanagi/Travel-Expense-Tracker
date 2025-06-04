@@ -79,7 +79,7 @@ with st.sidebar.expander("🗂 Trip Manager", expanded=True):
         st.markdown(f"### 📂 Viewing Trip: `{st.session_state.viewing_trip}`")
         if st.button("🔄 Return to Active Trip"):
             st.session_state.viewing_trip = active_trip
-            st.experimental_rerun()
+            st.rerun()
     else:
         st.markdown(f"### 🗺️ Active Trip: `{active_trip}`")
 

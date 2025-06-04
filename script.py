@@ -139,12 +139,15 @@ with st.form("add_expense_form", clear_on_submit=True):
             trip=active_trip
         )
 
-         # 🎉 Show confirmation
-        st.success(f"✅ Expense added to `{active_trip}`!")
-        st.balloons()  # Optional visual feedback
+    # 🎉 Show confirmation
+    st.success(f"✅ Expense added to `{active_trip}`!")
+    st.balloons()  # Optional visual feedback
 
-        st.markdown('<a href="#summary">🔽 Scroll to Expense Summary</a>', unsafe_allow_html=True)
-        st.markdown('<meta http-equiv="refresh" content="0;url=#summary">', unsafe_allow_html=True)
+    # 🔽 Scroll to the summary section
+    st.experimental_set_query_params(scroll_to="summary")
+    st.markdown('<meta http-equiv="refresh" content="0; URL=#summary">', unsafe_allow_html=True)
+
+
 
 st.sidebar.markdown("---")
 

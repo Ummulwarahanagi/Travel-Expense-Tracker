@@ -157,8 +157,8 @@ with st.sidebar.expander("💱 Currency Converter", expanded=False):
 st.sidebar.markdown("---")
 
 if st.sidebar.button("🚪 Logout"):
-    st.query_params()
-    st.rerun() 
+    st.query_params.clear()
+    st.rerun()
 
 
 trip_to_display = st.session_state.viewing_trip

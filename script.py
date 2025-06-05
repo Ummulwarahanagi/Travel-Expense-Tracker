@@ -323,16 +323,16 @@ if submitted:
 
 
                 # Reload and reprocess
-                df = load_expense_with_trip(gsheet, username, trip=active_trip)
-                df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
-                df["split_amount"] = pd.to_numeric(df.get("Split Amount", df["amount"]), errors="coerce").fillna(0)
-                df["shared_with"] = df.get("shared_with").fillna("")
-                df["is_shared"] = df["shared_with"].apply(lambda x: "✅" if str(x).strip() else "❌")
+            df = load_expense_with_trip(gsheet, username, trip=active_trip)
+            df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
+            df["split_amount"] = pd.to_numeric(df.get("Split Amount", df["amount"]), errors="coerce").fillna(0)
+            df["shared_with"] = df.get("shared_with").fillna("")
+            df["is_shared"] = df["shared_with"].apply(lambda x: "✅" if str(x).strip() else "❌")
 
-                view_mode = st.radio("View Mode", ["All Expenses", "My Share Only"])
-                if view_mode == "My Share Only":
-                   df = df[df["username"] == username]
-                   df["amount"] = df["split_amount"]
+            view_mode = st.radio("View Mode", ["All Expenses", "My Share Only"])
+            if view_mode == "My Share Only":
+                df = df[df["username"] == username]
+                df["amount"] = df["split_amount"]
 
                 total_spent = df["split_amount"].sum()
                 remaining_budget = curr_budget - total_spent

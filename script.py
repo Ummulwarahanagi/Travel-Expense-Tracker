@@ -279,50 +279,48 @@ with st.form("add_expense_form", clear_on_submit=True):
     st.text(f"📍 Selected Location: {selected_location}")
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
 
-    # 🔽 Move the sharing block here inside the form
+    # ✅ Split expense checkbox
     enable_sharing = st.checkbox("👥 Split this expense with others?")
-    shared_with = []
+
+    # ✅ Conditionally show input only when checked
+    shared_raw = ""
     if enable_sharing:
         shared_raw = st.text_input("Enter usernames/emails separated by commas")
-        shared_with = [s.strip() for s in shared_raw.split(",") if s.strip()]
-    else:
-        shared_with = None
 
-    # ✅ Correctly placed submit button
+    # ✅ Submit button inside the form
     submitted = st.form_submit_button("Add Expense")
 
+# ✅ Process the form submission
 if submitted:
-       errors = []
+    errors = []
 
-       # Validation: Budget must be set and ≥ 1000
-       if curr_budget < 1000:
-          errors.append("⚠️ Please set a valid budget of at least ₹1000 before adding expenses.")
+    # Parse shared_with from raw input (after form is submitted)
+    shared_with = [s.strip() for s in shared_raw.split(",") if s.strip()] if enable_sharing else None
 
-       # Validation: All fields must be filled
-       if not description.strip():
-          errors.append("⚠️ Description cannot be empty.")
-       if amount <= 0:
-          errors.append("⚠️ Enter a valid amount greater than ₹0.")
-       if not selected_location or selected_location.strip() == "":
-          errors.append("⚠️ Please select a valid location.")
-    
-       if errors:
-          for err in errors:
-              st.warning(err)
-          play_beep()
-       else:
-           # Budget exceed check
-           if total_spent + amount > curr_budget:
-              ai_msg = f"🚫 Cannot add expense! This would exceed your budget of ₹{curr_budget:,.2f}."
-              ai_chat_message(ai_msg, is_critical=True)
-              play_beep()
-           else:
-                # Proceed to add expense
-                add_expense_with_trip(
-                    gsheet, username, str(date), category, description,
-                    amount, selected_location, trip=active_trip, shared_with=shared_with
-                )
-                st.success(f"✅ Expense added to `{active_trip}`!")
+    if curr_budget < 1000:
+        errors.append("⚠️ Please set a valid budget of at least ₹1000 before adding expenses.")
+    if not description.strip():
+        errors.append("⚠️ Description cannot be empty.")
+    if amount <= 0:
+        errors.append("⚠️ Enter a valid amount greater than ₹0.")
+    if not selected_location or selected_location.strip() == "":
+        errors.append("⚠️ Please select a valid location.")
+
+    if errors:
+        for err in errors:
+            st.warning(err)
+        play_beep()
+    else:
+        if total_spent + amount > curr_budget:
+            ai_chat_message(f"🚫 Cannot add expense! This would exceed your budget of ₹{curr_budget:,.2f}.", is_critical=True)
+            play_beep()
+        else:
+            add_expense_with_trip(
+                gsheet, username, str(date), category, description,
+                amount, selected_location, trip=active_trip, shared_with=shared_with
+            )
+            st.success(f"✅ Expense added to `{active_trip}`!")
+
 
                 # Reload and reprocess
                 df = load_expense_with_trip(gsheet, username, trip=active_trip)

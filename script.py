@@ -345,6 +345,9 @@ else:
          pivot_table = daily_breakdown.pivot(index="date", columns="category", values="amount").fillna(0)
 
          st.bar_chart(pivot_table)
+         st.subheader("📈 Total Daily Spend Trend")
+         daily_total = df_view.groupby("date")["amount"].sum()
+         st.line_chart(daily_total)
 
 
     with tabs[2]:

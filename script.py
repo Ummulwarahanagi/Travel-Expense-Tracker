@@ -269,28 +269,27 @@ total_spent = df["amount"].sum()
 remaining_budget = curr_budget - total_spent
 
 # --- Expense input form ---
+# Step 1: Let user choose sharing option BEFORE the form
+share_option = st.selectbox("Do you want to split this expense?", ["No", "Yes"])
+
+# Step 2: Capture sharing input accordingly
+shared_raw = ""
+if share_option == "Yes":
+    shared_raw = st.text_input("Enter usernames/emails (comma-separated)", key="share_input")
+
+# Step 3: Actual form for expense entry
 with st.form("add_expense_form", clear_on_submit=True):
     date = st.date_input("Date")
     category = st.selectbox("Category", [
         "Flights", "Hotels", "Food", "Transport", "Miscellaneous",
         "Shopping", "Entertainment", "Fuel", "Medical", "Groceries", "Sightseeing"
     ])
-    description = st.text_input("Description")
+    description = st.text_input("Description", key="desc_input")
     st.text(f"📍 Selected Location: {selected_location}")
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
-
-    # ✅ Use dropdown for share option
-    share_option = st.selectbox("Do you want to split this expense?", ["No", "Yes"])
-
-    # ✅ Always show text input, but enable only if "Yes"
-    shared_raw = st.text_input(
-        "Enter usernames/emails (comma-separated)",
-        disabled=(share_option == "No")
-    )
-
     submitted = st.form_submit_button("Add Expense")
 
-# Outside form
+# Step 4: Process the form data
 if submitted:
     shared_with = [s.strip() for s in shared_raw.split(",") if s.strip()] if share_option == "Yes" else None
 
@@ -318,6 +317,7 @@ if submitted:
                 amount, selected_location, trip=active_trip, shared_with=shared_with
             )
             st.success(f"✅ Expense added to `{active_trip}`!")
+
 
 
 

@@ -85,7 +85,7 @@ with st.sidebar.expander("🗂 Trip Manager", expanded=True):
 
     if trip_input.strip() and trip_input.strip() != st.session_state.get("active_trip", ""):
         st.session_state.active_trip = trip_input.strip()
-        st.experimental_rerun()
+        st.rerun()
 
     active_trip = st.session_state.active_trip
 

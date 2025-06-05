@@ -45,11 +45,16 @@ username = params.get("username", None)
 if not username:
     st.error("⚠️ You are logged out. Please log in.")
     st.stop()
+else:
+    username = username[0] if isinstance(username, list) else username
+
+if "ai_greeted" not in st.session_state:
+    st.session_state.ai_greeted = False
 
 # ------------------------- Google Sheets ---------------------------- #
 gsheet = connect_sheet()
 
-# ------------------------- Personalized Avatar AI Assistant ---------------------------- #
+# ------------------------- AI Suggestion Logic ---------------------------- #
 def ai_suggestion(df, category, amount):
     if df.empty:
         return "You're just getting started! 👍 Spend wisely."
@@ -62,10 +67,11 @@ def ai_suggestion(df, category, amount):
     else:
         return f"👌 This is in line with your past spending on `{category}`."
 
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/4712/4712102.png", width=80)
-    st.markdown(f"## 👋 Hi **{username}**!")
-    st.markdown("I'm your AI assistant. I’ll suggest tips based on your spending history! 💡")
+# ------------------------- AI Assistant Greeting ---------------------------- #
+with st.chat_message("assistant", avatar="https://cdn-icons-png.flaticon.com/512/4712/4712102.png"):
+    if not st.session_state.ai_greeted:
+        st.markdown(f"👋 Hello **{username}**! I'm your travel budget assistant. Ask me anything or just keep tracking your expenses. Let’s make your trip smarter! 💼💡")
+        st.session_state.ai_greeted = True
 
 # ------------------------- Sidebar - Trip Manager ---------------------------- #
 st.sidebar.title("📂 Travel Expense Tracker")
@@ -151,9 +157,11 @@ with st.form("add_expense_form", clear_on_submit=True):
         # Load for AI Suggestion
         df_temp = load_expense_with_trip(gsheet, username, trip=active_trip)
         ai_msg = ai_suggestion(df_temp, category, amount)
-        st.info(f"🤖 AI Suggestion: {ai_msg}")
 
-# ------------------------- Remaining UI - Summary ---------------------------- #
+        with st.chat_message("assistant", avatar="https://cdn-icons-png.flaticon.com/512/4712/4712102.png"):
+            st.markdown(f"🤖 AI Suggestion: {ai_msg}")
+
+# ------------------------- Summary ---------------------------- #
 trip_to_display = st.session_state.viewing_trip
 df = load_expense_with_trip(gsheet, username, trip=trip_to_display)
 
@@ -214,4 +222,3 @@ st.sidebar.markdown("---")
 if st.sidebar.button("🚪 Logout"):
     st.query_params.clear()
     st.rerun()
-

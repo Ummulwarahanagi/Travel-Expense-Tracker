@@ -341,10 +341,10 @@ else:
          # Group by date and category
          daily_breakdown = df_view.groupby(["date", "category"])["amount"].sum().reset_index()
 
-        # Pivot to get categories as columns for grouped bar chart
-        pivot_table = daily_breakdown.pivot(index="date", columns="category", values="amount").fillna(0)
+         # Pivot to get categories as columns for grouped bar chart
+         pivot_table = daily_breakdown.pivot(index="date", columns="category", values="amount").fillna(0)
 
-        st.bar_chart(pivot_table)
+         st.bar_chart(pivot_table)
 
 
     with tabs[2]:

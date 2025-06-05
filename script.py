@@ -278,6 +278,7 @@ with st.form("add_expense_form", clear_on_submit=True):
     description = st.text_input("Description")
     st.text(f"📍 Selected Location: {selected_location}")
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
+    submitted = st.form_submit_button("Add Expense")
     
     # 🔽 Optional sharing section inside the form
     
@@ -290,9 +291,7 @@ with st.expander("👥 Share this expense?"):
     else:
         shared_with = None
 
-    submitted = st.form_submit_button("Add Expense")
-
-    if submitted:
+if submitted:
        errors = []
 
        # Validation: Budget must be set and ≥ 1000

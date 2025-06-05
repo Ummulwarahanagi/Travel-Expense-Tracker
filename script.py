@@ -222,11 +222,11 @@ with st.sidebar:
           ("USD", "CAD"): 1.35, ("CNY", "USD"): 0.14, ("USD", "CNY"): 7.1,
     }
 
-    rate = example_rates.get((from_currency, to_currency), None)
-    if rate:
+     rate = example_rates.get((from_currency, to_currency), None)
+     if rate:
         converted = conv_amount * rate
         st.sidebar.success(f"{conv_amount:.2f} {from_currency} = {converted:.2f} {to_currency}")
-    else:
+     else:
         st.sidebar.error("Currency pair not supported yet.")
 
 

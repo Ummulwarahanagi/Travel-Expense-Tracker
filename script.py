@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import random
 from google_sheets_utils import (
     connect_sheet,
     add_expense_with_trip,
@@ -36,17 +37,37 @@ def nominatim_search(query, limit=5):
         st.error(f"API error: {e}")
     return []
 
+# ------------------------- Streamlit Setup ---------------------------- #
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
-
 params = st.query_params
 username = params.get("username", None)
+
 if not username:
     st.error("⚠️ You are logged out. Please log in.")
     st.stop()
 
+# ------------------------- Google Sheets ---------------------------- #
 gsheet = connect_sheet()
-st.markdown(f"<h1 style='text-align:center; color:#2E86C1;'>👋 Welcome, <span style='color:#F39C12;'>{username}</span>!</h1>", unsafe_allow_html=True)
 
+# ------------------------- Personalized Avatar AI Assistant ---------------------------- #
+def ai_suggestion(df, category, amount):
+    if df.empty:
+        return "You're just getting started! 👍 Spend wisely."
+    cat_exp = df[df["category"] == category]["amount"].sum()
+    avg_cat_exp = cat_exp / max(len(df[df["category"] == category]), 1)
+    if amount > avg_cat_exp * 1.5:
+        return f"⚠️ This expense is quite high compared to your usual `{category}` spending."
+    elif amount < avg_cat_exp * 0.5:
+        return f"✅ Smart choice! You're spending less than your average on `{category}`."
+    else:
+        return f"👌 This is in line with your past spending on `{category}`."
+
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/4712/4712102.png", width=80)
+    st.markdown(f"## 👋 Hi **{username}**!")
+    st.markdown("I'm your AI assistant. I’ll suggest tips based on your spending history! 💡")
+
+# ------------------------- Sidebar - Trip Manager ---------------------------- #
 st.sidebar.title("📂 Travel Expense Tracker")
 st.sidebar.markdown("---")
 
@@ -84,6 +105,7 @@ with st.sidebar.expander("🗂 Trip Manager", expanded=True):
 
 st.sidebar.markdown("---")
 
+# ------------------------- Budget ---------------------------- #
 with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
     curr_budget = get_budget(gsheet, username)
     try:
@@ -97,8 +119,9 @@ with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
         set_budget(gsheet, username, budget_input)
         st.success("✅ Budget updated")
 
-    st.markdown("---")
+st.sidebar.markdown("---")
 
+# ------------------------- Location Input ---------------------------- #
 location_input = st.text_input("📍 Location (start typing... hit enter)", key="live_loc_input")
 selected_location = location_input
 suggestions = []
@@ -112,63 +135,33 @@ if len(location_input.strip()) >= 3:
     else:
         st.info("No matching locations found.")
 
+# ------------------------- Expense Input ---------------------------- #
 st.text("Add Expenses")
 with st.form("add_expense_form", clear_on_submit=True):
     date = st.date_input("Date")
-    category = st.selectbox("Category",["Flights", "Hotels", "Food", "Transport","Miscellaneous","Shoping","Entertainment","Fuel","Medical","Groceries","Sightseeing"])
+    category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous", "Shopping", "Entertainment", "Fuel", "Medical", "Groceries", "Sightseeing"])
     description = st.text_input("Description")
     st.text(f"📍 Selected Location: {selected_location}")
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
     submitted = st.form_submit_button("Add Expense")
     if submitted:
-        add_expense_with_trip(
-            gsheet, username, str(date), category, description, amount, selected_location, trip=active_trip
-        )
+        add_expense_with_trip(gsheet, username, str(date), category, description, amount, selected_location, trip=active_trip)
         st.success(f"✅ Expense added to `{active_trip}`!")
-       
-st.sidebar.markdown("---")
 
-with st.sidebar.expander("💱 Currency Converter", expanded=False):
-    currencies = ["USD", "EUR", "INR", "GBP", "JPY", "AUD", "CAD", "CNY"]
-    from_currency = st.selectbox("From", currencies, index=2)
-    to_currency = st.selectbox("To", currencies, index=0)
-    conv_amount = st.number_input("Amount", min_value=0.0, value=1.0, step=0.1, format="%.2f")
+        # Load for AI Suggestion
+        df_temp = load_expense_with_trip(gsheet, username, trip=active_trip)
+        ai_msg = ai_suggestion(df_temp, category, amount)
+        st.info(f"🤖 AI Suggestion: {ai_msg}")
 
-    if st.button("Convert"):
-        example_rates = {
-            ("INR", "USD"): 0.012, ("INR", "EUR"): 0.011, ("INR", "GBP"): 0.0098,
-            ("INR", "JPY"): 1.57, ("INR", "AUD"): 0.018, ("INR", "CAD"): 0.016,
-            ("INR", "CNY"): 0.083, ("USD", "INR"): 82.5, ("EUR", "INR"): 88.5,
-            ("GBP", "INR"): 102.0, ("JPY", "INR"): 0.64, ("AUD", "INR"): 56.0,
-            ("CAD", "INR"): 61.5, ("CNY", "INR"): 12.0, ("EUR", "USD"): 1.1,
-            ("USD", "EUR"): 0.91, ("GBP", "USD"): 1.3, ("USD", "GBP"): 0.77,
-            ("JPY", "USD"): 0.007, ("USD", "JPY"): 140, ("AUD", "USD"): 0.67,
-            ("USD", "AUD"): 1.5, ("CAD", "USD"): 0.74, ("USD", "CAD"): 1.35,
-            ("CNY", "USD"): 0.14, ("USD", "CNY"): 7.1,
-        }
-        rate = example_rates.get((from_currency, to_currency))
-        if rate:
-            converted = conv_amount * rate
-            st.success(f"{conv_amount:.2f} {from_currency} = {converted:.2f} {to_currency}")
-        else:
-            st.error("Currency pair not supported yet.")
-
-st.sidebar.markdown("---")
-
-if st.sidebar.button("🚪 Logout"):
-    st.query_params.clear()
-    st.rerun()
-
-
+# ------------------------- Remaining UI - Summary ---------------------------- #
 trip_to_display = st.session_state.viewing_trip
 df = load_expense_with_trip(gsheet, username, trip=trip_to_display)
 
-st.markdown('<a name="summary"></a>', unsafe_allow_html=True)
 st.markdown("---")
 st.markdown(f"<h2 style='color:#34495E;'>📊 Expense Summary for <span style='color:#E67E22;'>{trip_to_display}</span></h2>", unsafe_allow_html=True)
 
 if df.empty:
-    st.info(f"No expenses found for `{trip_to_display}`. Use the sidebar to add expenses.")
+    st.info(f"No expenses found for `{trip_to_display}`.")
 else:
     df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
     total_spent = df["amount"].sum()
@@ -201,8 +194,6 @@ else:
                 if st.button("Delete"):
                     delete_expense(gsheet, int(delete_row))
                     st.success(f"Deleted row: {int(delete_row)}")
-            else:
-                st.info("No data to delete.")
 
         st.subheader("Update Expense")
         with st.expander("Update an Expense"):
@@ -215,9 +206,12 @@ else:
                     u_amt = st.number_input("Amount", min_value=0.0, format="%.2f", key="u_amt")
                     u_loc = st.text_input("Location", key="u_loc")
                     if st.form_submit_button("Update"):
-                        update_expense_with_trip(
-                            gsheet, int(update_row), str(u_date), u_cat, u_desc, u_amt, u_loc, trip=active_trip
-                        )
+                        update_expense_with_trip(gsheet, int(update_row), str(u_date), u_cat, u_desc, u_amt, u_loc, trip=active_trip)
                         st.success(f"Updated expense row {int(update_row)}.")
-            else:
-                st.info("No data to update.")
+
+# ------------------------- Logout ---------------------------- #
+st.sidebar.markdown("---")
+if st.sidebar.button("🚪 Logout"):
+    st.query_params.clear()
+    st.rerun()
+

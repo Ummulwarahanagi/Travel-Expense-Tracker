@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import requests
-import random
 from google_sheets_utils import (
     connect_sheet,
     add_expense_with_trip,
@@ -13,7 +12,6 @@ from google_sheets_utils import (
     delete_expense
 )
 
-# --- Location API ---
 def nominatim_search(query, limit=5):
     import time
     url = "https://nominatim.openstreetmap.org/search"
@@ -25,7 +23,7 @@ def nominatim_search(query, limit=5):
         "accept-language": "en",
     }
     headers = {
-        "User-Agent": "travel-expense-tracker-app (your-email@example.com)"
+        "User-Agent": "travel-expense-tracker-app (ummulwarahanagi@gmail.com)"
     }
     try:
         time.sleep(1)
@@ -38,103 +36,43 @@ def nominatim_search(query, limit=5):
         st.error(f"API error: {e}")
     return []
 
-# --- AI Suggestion Logic ---
-def ai_suggestion(df, category, amount, total_spent, budget):
-    if budget <= 0:
-        starters = [
-            "You're just getting started! 👍 Spend wisely.",
-            "Let's kick off this journey with smart spending! 🚀",
-            "Beginner's luck! Keep tracking those expenses. 💼",
-            "Every rupee counts—let's make them work! 💪"
-        ]
-        return random.choice(starters), False
-
-    # Budget maxed out
-    if total_spent >= budget:
-        limits = [
-            f"🚫 Budget maxed out at ₹{budget:,.2f}! No more spending allowed.",
-            f"⛔ You've hit your budget ceiling of ₹{budget:,.2f}. Time to pause spending.",
-            f"⚠️ Budget exhausted! ₹{budget:,.2f} is your limit. Review your expenses.",
-            f"🛑 Hold on! You reached the budget limit of ₹{budget:,.2f}."
-        ]
-        return random.choice(limits), True  # True = critical alert
-
-    # Near budget warning (90% spent)
-    if total_spent >= 0.9 * budget:
-        warnings = [
-            f"⚠️ Heads up! You're nearly at your budget with ₹{budget - total_spent:,.2f} left.",
-            f"🔥 Almost there! Only ₹{budget - total_spent:,.2f} remaining in your budget.",
-            f"⏳ Watch out! Your budget's almost full, ₹{budget - total_spent:,.2f} left to spend.",
-            f"⚡ You're close to your budget limit—just ₹{budget - total_spent:,.2f} remains!"
-        ]
-        return random.choice(warnings), True
-
-    # Normal spending suggestions
-    cat_exp = df[df["category"] == category]["amount"].sum()
-    avg_cat_exp = cat_exp / max(len(df[df["category"] == category]), 1)
-
-    high_spend_msgs = [
-        f"🚀 Wow! That's a big spend on `{category}` compared to usual. Keep an eye!",
-        f"⚠️ High expense alert for `{category}`! Make sure it's worth it.",
-        f"🔥 `{category}` spending spike detected. Budget wisely!",
-        f"💡 You splurged on `{category}` today. Monitor those costs!"
-    ]
-    low_spend_msgs = [
-        f"🎉 Nice! You're spending less than usual on `{category}`—smart move.",
-        f"✅ Keeping `{category}` costs low, great job!",
-        f"👍 Low spending on `{category}` is always welcome.",
-        f"🌱 Being frugal on `{category}` pays off!"
-    ]
-    normal_spend_msgs = [
-        f"👌 This `{category}` expense aligns well with your past spending.",
-        f"💼 `{category}` costs seem steady. Keep it up!",
-        f"📝 `{category}` spending is consistent with your habits.",
-        f"📊 `{category}` expense fits your budget pattern."
-    ]
-
-    if amount > avg_cat_exp * 1.5:
-        return random.choice(high_spend_msgs), False
-    elif amount < avg_cat_exp * 0.5:
-        return random.choice(low_spend_msgs), False
-    else:
-        return random.choice(normal_spend_msgs), False
-
-# --- Sound beep helper ---
-def play_beep():
-    st.markdown(
-        """
-        <audio autoplay>
-        <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
-        </audio>
-        """,
-        unsafe_allow_html=True,
-    )
-
-# --- Streamlit Setup ---
+# ------------------------- Streamlit Setup ---------------------------- #
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
 params = st.query_params
-username = params.get("username",None)
+username = params.get("username", None)
 
 if not username:
     st.error("⚠️ You are logged out. Please log in.")
     st.stop()
 
-# --- Connect Google Sheet ---
+# ------------------------- Google Sheets ---------------------------- #
 gsheet = connect_sheet()
 
-# --- Session State initialization ---
-if "active_trip" not in st.session_state:
-    st.session_state.active_trip = None
-if "viewing_trip" not in st.session_state:
-    st.session_state.viewing_trip = None
-if "last_ai_msg" not in st.session_state:
-    st.session_state.last_ai_msg = ""
+# ------------------------- Personalized Avatar AI Assistant ---------------------------- #
+def ai_suggestion(df, category, amount):
+    if df.empty:
+        return "You're just getting started! 👍 Spend wisely."
+    cat_exp = df[df["category"] == category]["amount"].sum()
+    avg_cat_exp = cat_exp / max(len(df[df["category"] == category]), 1)
+    if amount > avg_cat_exp * 1.5:
+        return f"⚠️ This expense is quite high compared to your usual `{category}` spending."
+    elif amount < avg_cat_exp * 0.5:
+        return f"✅ Smart choice! You're spending less than your average on `{category}`."
+    else:
+        return f"👌 This is in line with your past spending on `{category}`."
 
+# ------------------------- Sidebar - User Greeting ---------------------------- #
+# Pop-up style greeting using st.chat_message after app loads
+if "greeted" not in st.session_state:
+    with st.chat_message("ai"):
+        st.markdown(f"👋 Hello **{username}**! I'm your AI assistant here to help you manage your travel expenses.")
+    st.session_state.greeted = True
 
-    st.title("📂 Travel Expense Tracker")
-    st.markdown("---")
+# ------------------------- Sidebar - Trip Manager ---------------------------- #
+st.sidebar.title("📂 Travel Expense Tracker")
+st.sidebar.markdown("---")
 
-    # Trip manager
+with st.sidebar.expander("🗂 Trip Manager", expanded=True):
     user_trips = get_user_trips(gsheet, username)
     default_trips = ["General"]
     all_trips = sorted(set(user_trips + default_trips))
@@ -142,27 +80,19 @@ if "last_ai_msg" not in st.session_state:
     trip_input = st.text_input("➕ Start New Trip:", key="trip_input")
     existing_trip = st.selectbox("📂 View Previous Trips:", options=all_trips, key="trip_select")
 
-    # Initialize active trip if None
-    if st.session_state.active_trip is None:
-        if trip_input.strip():
-            st.session_state.active_trip = trip_input.strip()
-        elif user_trips:
-            st.session_state.active_trip = sorted(user_trips)[-1]
-        else:
-            st.session_state.active_trip = "General"
+    if "active_trip" not in st.session_state:
+        st.session_state.active_trip = trip_input.strip() or (sorted(user_trips)[-1] if user_trips else "General")
 
-    # If user inputs new trip, update active trip and rerun
-    if trip_input.strip() and trip_input.strip() != st.session_state.active_trip:
+    if trip_input.strip() and trip_input.strip() != st.session_state.get("active_trip", ""):
         st.session_state.active_trip = trip_input.strip()
         st.rerun()
 
     active_trip = st.session_state.active_trip
 
-    # Viewing trip selector
-    if st.session_state.viewing_trip is None:
+    if "viewing_trip" not in st.session_state:
         st.session_state.viewing_trip = active_trip
 
-    if existing_trip != active_trip:
+    if existing_trip != st.session_state.active_trip:
         if st.button("📖 View Selected Trip History"):
             st.session_state.viewing_trip = existing_trip
 
@@ -174,53 +104,25 @@ if "last_ai_msg" not in st.session_state:
     else:
         st.markdown(f"### 🗺️ Active Trip: `{active_trip}`")
 
-    st.markdown("---")
+st.sidebar.markdown("---")
 
-    # Budget management
+# ------------------------- Budget ---------------------------- #
+with st.sidebar.expander("💰 Budget & Expenses", expanded=True):
     curr_budget = get_budget(gsheet, username)
     try:
         curr_budget = float(curr_budget)
     except:
         curr_budget = 0.0
 
-    st.subheader("💰 Budget & Expenses")
-    budget_input = st.number_input("Set Budget (₹):", min_value=0.0, value=curr_budget, step=100.0, format="%.2f")
+    st.subheader("Set Budget")
+    budget_input = st.number_input("Budget (₹):", min_value=0.0, value=curr_budget, step=100.0, format="%.2f")
     if st.button("Update Budget"):
         set_budget(gsheet, username, budget_input)
         st.success("✅ Budget updated")
 
-    st.markdown("---")
+st.sidebar.markdown("---")
 
-    if st.button("🚪 Logout"):
-        st.experimental_set_query_params()
-        st.experimental_rerun()
-
-# --- Pop-up AI Greeting & Message in Chat ---
-
-def ai_chat_message(msg, is_critical=False, avatar="🤖", show_img=False):
-    color = "#e74c3c" if is_critical else "#34495E"
-    with st.chat_message(avatar):
-        if show_img:
-            # Show image inline before the message
-            st.markdown(
-                f"<img src='https://cdn-icons-png.flaticon.com/512/4712/4712102.png' width='40' style='vertical-align: middle; margin-right: 10px;' />"
-                f"<span style='color:{color}; font-weight:bold;'>{msg}</span>",
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(f"<span style='color:{color}; font-weight:bold;'>{msg}</span>", unsafe_allow_html=True)
-
-# Then when greeting for first time:
-if not st.session_state.get("greeted", False):
-    ai_chat_message(f"Hello {username}! 👋 I'm your AI travel expense assistant. I'll help you stay on budget and give spending tips.", show_img=True)
-    st.session_state.greeted = True
-
-# Show greeting once per session
-if not st.session_state.get("greeted", False):
-    ai_chat_message(f"Hello {username}! 👋 I'm your AI travel expense assistant. I'll help you stay on budget and give spending tips.")
-    st.session_state.greeted = True
-
-# --- Location input ---
+# ------------------------- Location Input ---------------------------- #
 location_input = st.text_input("📍 Location (start typing... hit enter)", key="live_loc_input")
 selected_location = location_input
 suggestions = []
@@ -234,86 +136,86 @@ if len(location_input.strip()) >= 3:
     else:
         st.info("No matching locations found.")
 
-# --- Load expense DataFrame for active trip ---
+# ------------------------- Expense Input with Budget Logic ---------------------------- #
 df = load_expense_with_trip(gsheet, username, trip=active_trip)
 df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
 total_spent = df["amount"].sum()
-remaining_budget = curr_budget - total_spent
 
-# --- Expense input form ---
-with st.form("add_expense_form", clear_on_submit=True):
-    date = st.date_input("Date")
-    category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous", "Shopping", "Entertainment", "Fuel", "Medical", "Groceries", "Sightseeing"])
-    description = st.text_input("Description")
-    st.text(f"📍 Selected Location: {selected_location}")
-    amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
-    submitted = st.form_submit_button("Add Expense")
+st.markdown("## ➕ Add Expenses")
 
-    if submitted:
-        # Check budget before adding
-        if total_spent + amount > curr_budget:
-            ai_msg = f"🚫 Cannot add expense! This would exceed your budget of ₹{curr_budget:,.2f}."
-            ai_chat_message(ai_msg, is_critical=True)
-            play_beep()
-        else:
-            add_expense_with_trip(gsheet, username, str(date), category, description, amount, selected_location, trip=active_trip)
-            st.success(f"✅ Expense added to `{active_trip}`!")
-            # Reload data after add
-            df = load_expense_with_trip(gsheet, username, trip=active_trip)
-            df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
-            total_spent = df["amount"].sum()
-            remaining_budget = curr_budget - total_spent
+if total_spent >= curr_budget and curr_budget > 0:
+    with st.chat_message("ai"):
+        st.warning(f"🚫 You've reached your budget limit of ₹{curr_budget:,.2f}. No more expenses allowed for this trip.")
+        st.info("💡 Tip: You can update your budget if needed from the sidebar.")
+else:
+    with st.form("add_expense_form", clear_on_submit=True):
+        date = st.date_input("Date")
+        category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous", "Shopping", "Entertainment", "Fuel", "Medical", "Groceries", "Sightseeing"])
+        description = st.text_input("Description")
+        st.text(f"📍 Selected Location: {selected_location}")
+        amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
+        submitted = st.form_submit_button("Add Expense")
 
-            ai_msg, critical = ai_suggestion(df, category, amount, total_spent, curr_budget)
-            ai_chat_message(ai_msg, is_critical=critical)
-            if critical:
-                play_beep()
+        if submitted:
+            if curr_budget > 0 and total_spent + amount > curr_budget:
+                with st.chat_message("ai"):
+                    st.error(f"⚠️ Adding ₹{amount:,.2f} will exceed your budget of ₹{curr_budget:,.2f}. Try reducing the amount.")
+            else:
+                add_expense_with_trip(gsheet, username, str(date), category, description, amount, selected_location, trip=active_trip)
+                st.success(f"✅ Expense added to `{active_trip}`!")
+                # Refresh Data & Show AI Suggestion
+                df = load_expense_with_trip(gsheet, username, trip=active_trip)
+                ai_msg = ai_suggestion(df, category, amount)
+                with st.chat_message("ai"):
+                    st.info(f"💬 AI Suggestion: {ai_msg}")
 
-# --- Expense summary and management ---
+# ------------------------- Remaining UI - Summary ---------------------------- #
+trip_to_display = st.session_state.viewing_trip
+df = load_expense_with_trip(gsheet, username, trip=trip_to_display)
+
 st.markdown("---")
-trip_to_display = st.session_state.viewing_trip or active_trip
 st.markdown(f"<h2 style='color:#34495E;'>📊 Expense Summary for <span style='color:#E67E22;'>{trip_to_display}</span></h2>", unsafe_allow_html=True)
 
-df_view = load_expense_with_trip(gsheet, username, trip=trip_to_display)
-if df_view.empty:
+if df.empty:
     st.info(f"No expenses found for `{trip_to_display}`.")
 else:
-    df_view["amount"] = pd.to_numeric(df_view["amount"], errors="coerce").fillna(0)
-    total_spent_view = df_view["amount"].sum()
-    remaining_view = float(curr_budget) - total_spent_view
+    df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
+    total_spent = df["amount"].sum()
+    remaining = float(curr_budget) - total_spent if curr_budget else None
 
     col1, col2, col3 = st.columns(3)
     col1.metric("🌟 Budget", f"₹{curr_budget:,.2f}")
-    col2.metric("💸 Total Spent", f"₹{total_spent_view:,.2f}")
-    col3.metric("🎁 Remaining", f"₹{max(remaining_view, 0):,.2f}")
+    col2.metric("💸 Total Spent", f"₹{total_spent:,.2f}")
+    col3.metric("🎁 Remaining", f"₹{max(remaining, 0):,.2f}" if remaining is not None else "N/A")
 
     tabs = st.tabs(["All Expenses", "Category Breakdown", "Manage Expenses"])
 
     with tabs[0]:
         st.subheader("All Expenses")
-        st.dataframe(df_view, height=400)
+        st.dataframe(df, height=400)
 
     with tabs[1]:
         st.subheader("Category Breakdown")
-        summary = df_view.groupby("category")["amount"].sum().reset_index()
+        summary = df.groupby("category")["amount"].sum().reset_index()
         st.bar_chart(summary.rename(columns={"amount": "Amount"}).set_index("category"))
-        summary["% Used"] = (summary["amount"] / curr_budget * 100).round(2)
-        summary["Status"] = summary["% Used"].apply(lambda x: "OK ✅" if x <= 30 else "High ⚠️")
-        st.dataframe(summary[["category", "amount", "% Used", "Status"]])
+        if curr_budget > 0:
+            summary["% Used"] = (summary["amount"] / curr_budget * 100).round(2)
+            summary["Status"] = summary["% Used"].apply(lambda x: "OK ✅" if x <= 30 else "High ⚠️")
+            st.dataframe(summary[["category", "amount", "% Used", "Status"]])
 
     with tabs[2]:
         st.subheader("Delete Expense")
         with st.expander("Delete an Expense"):
-            if not df_view.empty:
-                delete_row = st.number_input("Row Number", min_value=2, max_value=int(df_view["Row"].max()), step=1)
+            if not df.empty:
+                delete_row = st.number_input("Row Number", min_value=2, max_value=int(df["Row"].max()), step=1)
                 if st.button("Delete"):
                     delete_expense(gsheet, int(delete_row))
                     st.success(f"Deleted row: {int(delete_row)}")
 
         st.subheader("Update Expense")
         with st.expander("Update an Expense"):
-            if not df_view.empty:
-                update_row = st.number_input("Row to Update", min_value=2, max_value=int(df_view["Row"].max()), step=1)
+            if not df.empty:
+                update_row = st.number_input("Row to Update", min_value=2, max_value=int(df["Row"].max()), step=1)
                 with st.form("update_expense_form"):
                     u_date = st.date_input("Date", key="u_date")
                     u_cat = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous"], key="u_cat")
@@ -323,3 +225,9 @@ else:
                     if st.form_submit_button("Update"):
                         update_expense_with_trip(gsheet, int(update_row), str(u_date), u_cat, u_desc, u_amt, u_loc, trip=active_trip)
                         st.success(f"Updated expense row {int(update_row)}.")
+
+# ------------------------- Logout ---------------------------- #
+st.sidebar.markdown("---")
+if st.sidebar.button("🚪 Logout"):
+    st.experimental_set_query_params()
+    st.experimental_rerun()

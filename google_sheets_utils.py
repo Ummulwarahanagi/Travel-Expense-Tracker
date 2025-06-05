@@ -106,9 +106,29 @@ def get_budget(sheet: gspread.Spreadsheet, username: str) -> float:
             except ValueError:
                 return 0.0
     return 0.0  # default if not foun
-def add_expense_with_trip(sheet, username, date, category, description, amount, location, trip="General"):
+def add_expense_with_trip(sheet, username, date, category, description, amount, location, trip="General", shared_with=None):
     ws = sheet.worksheet(SHEET_NAME)
-    ws.append_row([username, date, category, description, float(amount), location, trip])
+
+    if shared_with:
+        shared_str = ",".join(shared_with)
+        total_people = len(shared_with) + 1  # including payer
+        split_amt = round(float(amount) / total_people, 2)
+    else:
+        shared_str = ""
+        split_amt = float(amount)
+
+    ws.append_row([
+        username,
+        date,
+        category,
+        description,
+        float(amount),
+        location,
+        trip,
+        shared_str,
+        split_amt
+    ])
+
 
 def load_expense_with_trip(sheet, username, trip=None):
     ws = sheet.worksheet(SHEET_NAME)

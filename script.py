@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import requests
-import random
 from google_sheets_utils import (
     connect_sheet,
     add_expense_with_trip,
@@ -39,22 +38,17 @@ def nominatim_search(query, limit=5):
 
 # ------------------------- Streamlit Setup ---------------------------- #
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
-params = st.query_params
-username = params.get("username", None)
+params = st.experimental_get_query_params()
+username = params.get("username", [None])[0]
 
 if not username:
     st.error("⚠️ You are logged out. Please log in.")
     st.stop()
-else:
-    username = username[0] if isinstance(username, list) else username
-
-if "ai_greeted" not in st.session_state:
-    st.session_state.ai_greeted = False
 
 # ------------------------- Google Sheets ---------------------------- #
 gsheet = connect_sheet()
 
-# ------------------------- AI Suggestion Logic ---------------------------- #
+# ------------------------- Personalized Avatar AI Assistant ---------------------------- #
 def ai_suggestion(df, category, amount):
     if df.empty:
         return "You're just getting started! 👍 Spend wisely."
@@ -67,11 +61,12 @@ def ai_suggestion(df, category, amount):
     else:
         return f"👌 This is in line with your past spending on `{category}`."
 
-# ------------------------- AI Assistant Greeting ---------------------------- #
-with st.chat_message("assistant", avatar="https://cdn-icons-png.flaticon.com/512/4712/4712102.png"):
-    if not st.session_state.ai_greeted:
-        st.markdown(f"👋 Hello **{username}**! I'm your travel budget assistant. Ask me anything or just keep tracking your expenses. Let’s make your trip smarter! 💼💡")
-        st.session_state.ai_greeted = True
+# ------------------------- Sidebar - User Greeting ---------------------------- #
+# Pop-up style greeting using st.chat_message after app loads
+if "greeted" not in st.session_state:
+    with st.chat_message("ai"):
+        st.markdown(f"👋 Hello **{username}**! I'm your AI assistant here to help you manage your travel expenses.")
+    st.session_state.greeted = True
 
 # ------------------------- Sidebar - Trip Manager ---------------------------- #
 st.sidebar.title("📂 Travel Expense Tracker")
@@ -86,11 +81,11 @@ with st.sidebar.expander("🗂 Trip Manager", expanded=True):
     existing_trip = st.selectbox("📂 View Previous Trips:", options=all_trips, key="trip_select")
 
     if "active_trip" not in st.session_state:
-        st.session_state.active_trip = trip_input.strip() or sorted(user_trips)[-1] if user_trips else "General"
+        st.session_state.active_trip = trip_input.strip() or (sorted(user_trips)[-1] if user_trips else "General")
 
     if trip_input.strip() and trip_input.strip() != st.session_state.get("active_trip", ""):
         st.session_state.active_trip = trip_input.strip()
-        st.rerun()
+        st.experimental_rerun()
 
     active_trip = st.session_state.active_trip
 
@@ -105,7 +100,7 @@ with st.sidebar.expander("🗂 Trip Manager", expanded=True):
         st.markdown(f"### 📂 Viewing Trip: `{st.session_state.viewing_trip}`")
         if st.button("🔄 Return to Active Trip"):
             st.session_state.viewing_trip = active_trip
-            st.rerun()
+            st.experimental_rerun()
     else:
         st.markdown(f"### 🗺️ Active Trip: `{active_trip}`")
 
@@ -141,27 +136,40 @@ if len(location_input.strip()) >= 3:
     else:
         st.info("No matching locations found.")
 
-# ------------------------- Expense Input ---------------------------- #
-st.text("Add Expenses")
-with st.form("add_expense_form", clear_on_submit=True):
-    date = st.date_input("Date")
-    category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous", "Shopping", "Entertainment", "Fuel", "Medical", "Groceries", "Sightseeing"])
-    description = st.text_input("Description")
-    st.text(f"📍 Selected Location: {selected_location}")
-    amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
-    submitted = st.form_submit_button("Add Expense")
-    if submitted:
-        add_expense_with_trip(gsheet, username, str(date), category, description, amount, selected_location, trip=active_trip)
-        st.success(f"✅ Expense added to `{active_trip}`!")
+# ------------------------- Expense Input with Budget Logic ---------------------------- #
+df = load_expense_with_trip(gsheet, username, trip=active_trip)
+df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
+total_spent = df["amount"].sum()
 
-        # Load for AI Suggestion
-        df_temp = load_expense_with_trip(gsheet, username, trip=active_trip)
-        ai_msg = ai_suggestion(df_temp, category, amount)
+st.markdown("## ➕ Add Expenses")
 
-        with st.chat_message("assistant", avatar="https://cdn-icons-png.flaticon.com/512/4712/4712102.png"):
-            st.markdown(f"🤖 AI Suggestion: {ai_msg}")
+if total_spent >= curr_budget and curr_budget > 0:
+    with st.chat_message("ai"):
+        st.warning(f"🚫 You've reached your budget limit of ₹{curr_budget:,.2f}. No more expenses allowed for this trip.")
+        st.info("💡 Tip: You can update your budget if needed from the sidebar.")
+else:
+    with st.form("add_expense_form", clear_on_submit=True):
+        date = st.date_input("Date")
+        category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous", "Shopping", "Entertainment", "Fuel", "Medical", "Groceries", "Sightseeing"])
+        description = st.text_input("Description")
+        st.text(f"📍 Selected Location: {selected_location}")
+        amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
+        submitted = st.form_submit_button("Add Expense")
 
-# ------------------------- Summary ---------------------------- #
+        if submitted:
+            if curr_budget > 0 and total_spent + amount > curr_budget:
+                with st.chat_message("ai"):
+                    st.error(f"⚠️ Adding ₹{amount:,.2f} will exceed your budget of ₹{curr_budget:,.2f}. Try reducing the amount.")
+            else:
+                add_expense_with_trip(gsheet, username, str(date), category, description, amount, selected_location, trip=active_trip)
+                st.success(f"✅ Expense added to `{active_trip}`!")
+                # Refresh Data & Show AI Suggestion
+                df = load_expense_with_trip(gsheet, username, trip=active_trip)
+                ai_msg = ai_suggestion(df, category, amount)
+                with st.chat_message("ai"):
+                    st.info(f"💬 AI Suggestion: {ai_msg}")
+
+# ------------------------- Remaining UI - Summary ---------------------------- #
 trip_to_display = st.session_state.viewing_trip
 df = load_expense_with_trip(gsheet, username, trip=trip_to_display)
 
@@ -173,12 +181,12 @@ if df.empty:
 else:
     df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
     total_spent = df["amount"].sum()
-    remaining = float(curr_budget) - total_spent
+    remaining = float(curr_budget) - total_spent if curr_budget else None
 
     col1, col2, col3 = st.columns(3)
     col1.metric("🌟 Budget", f"₹{curr_budget:,.2f}")
     col2.metric("💸 Total Spent", f"₹{total_spent:,.2f}")
-    col3.metric("🎁 Remaining", f"₹{max(remaining, 0):,.2f}")
+    col3.metric("🎁 Remaining", f"₹{max(remaining, 0):,.2f}" if remaining is not None else "N/A")
 
     tabs = st.tabs(["All Expenses", "Category Breakdown", "Manage Expenses"])
 
@@ -190,9 +198,10 @@ else:
         st.subheader("Category Breakdown")
         summary = df.groupby("category")["amount"].sum().reset_index()
         st.bar_chart(summary.rename(columns={"amount": "Amount"}).set_index("category"))
-        summary["% Used"] = (summary["amount"] / curr_budget * 100).round(2)
-        summary["Status"] = summary["% Used"].apply(lambda x: "OK ✅" if x <= 30 else "High ⚠️")
-        st.dataframe(summary[["category", "amount", "% Used", "Status"]])
+        if curr_budget > 0:
+            summary["% Used"] = (summary["amount"] / curr_budget * 100).round(2)
+            summary["Status"] = summary["% Used"].apply(lambda x: "OK ✅" if x <= 30 else "High ⚠️")
+            st.dataframe(summary[["category", "amount", "% Used", "Status"]])
 
     with tabs[2]:
         st.subheader("Delete Expense")
@@ -220,5 +229,5 @@ else:
 # ------------------------- Logout ---------------------------- #
 st.sidebar.markdown("---")
 if st.sidebar.button("🚪 Logout"):
-    st.query_params.clear()
-    st.rerun()
+    st.experimental_set_query_params()
+    st.experimental_rerun()

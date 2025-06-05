@@ -279,24 +279,20 @@ with st.form("add_expense_form", clear_on_submit=True):
     st.text(f"📍 Selected Location: {selected_location}")
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
 
-    # ✅ Split expense checkbox
-    enable_sharing = st.checkbox("👥 Split this expense with others?")
+    # ✅ Instead of a checkbox, use a dropdown with Yes/No
+    share_option = st.selectbox("Do you want to split this expense?", ["No", "Yes"])
 
-    # ✅ Conditionally show input only when checked
     shared_raw = ""
-    if enable_sharing:
-        shared_raw = st.text_input("Enter usernames/emails separated by commas")
+    if share_option == "Yes":
+        shared_raw = st.text_input("Enter usernames/emails (comma-separated)")
 
-    # ✅ Submit button inside the form
     submitted = st.form_submit_button("Add Expense")
 
-# ✅ Process the form submission
+# Outside form
 if submitted:
+    shared_with = [s.strip() for s in shared_raw.split(",") if s.strip()] if share_option == "Yes" else None
+
     errors = []
-
-    # Parse shared_with from raw input (after form is submitted)
-    shared_with = [s.strip() for s in shared_raw.split(",") if s.strip()] if enable_sharing else None
-
     if curr_budget < 1000:
         errors.append("⚠️ Please set a valid budget of at least ₹1000 before adding expenses.")
     if not description.strip():
@@ -320,6 +316,7 @@ if submitted:
                 amount, selected_location, trip=active_trip, shared_with=shared_with
             )
             st.success(f"✅ Expense added to `{active_trip}`!")
+
 
 
                 # Reload and reprocess

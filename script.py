@@ -317,10 +317,8 @@ if submitted:
                 amount, selected_location, trip=active_trip, shared_with=shared_with
             )
             st.success(f"✅ Expense added to `{active_trip}`!")
-
-
-
-
+            suggestion_msg, is_critical = ai_suggestion(df, category, amount, total_spent + amount, curr_budget)
+            ai_chat_message(suggestion_msg, is_critical=is_critical)
 
                 # Reload and reprocess
             df = load_expense_with_trip(gsheet, username, trip=active_trip)

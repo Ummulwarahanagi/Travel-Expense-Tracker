@@ -306,7 +306,7 @@ with st.form("add_expense_form", clear_on_submit=True):
             
             df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
             df["split_amount"] = pd.to_numeric(df.get("Split Amount", df["amount"]), errors="coerce").fillna(0)
-            df["shared_with"] = df.get("Shared With", "").fillna("")
+            df["shared_with"] = df.get("shared_with").fillna("")
             df["is_shared"] = df["shared_with"].apply(lambda x: "✅" if str(x).strip() else "❌")
             
             view_mode = st.radio("View Mode", ["All Expenses", "My Share Only"])

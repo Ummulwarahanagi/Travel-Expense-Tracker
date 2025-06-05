@@ -322,12 +322,30 @@ else:
         st.dataframe(df_view, height=400)
 
     with tabs[1]:
-        st.subheader("Category Breakdown")
-        summary = df_view.groupby("category")["amount"].sum().reset_index()
-        st.bar_chart(summary.rename(columns={"amount": "Amount"}).set_index("category"))
-        summary["% Used"] = (summary["amount"] / curr_budget * 100).round(2)
-        summary["Status"] = summary["% Used"].apply(lambda x: "OK ✅" if x <= 30 else "High ⚠️")
-        st.dataframe(summary[["category", "amount", "% Used", "Status"]])
+    st.subheader("📊 Category Breakdown (Overall)")
+    
+    # Overall category-wise breakdown
+    summary = df_view.groupby("category")["amount"].sum().reset_index()
+    st.bar_chart(summary.rename(columns={"amount": "Amount"}).set_index("category"))
+
+    summary["% Used"] = (summary["amount"] / curr_budget * 100).round(2)
+    summary["Status"] = summary["% Used"].apply(lambda x: "OK ✅" if x <= 30 else "High ⚠️")
+    st.dataframe(summary[["category", "amount", "% Used", "Status"]])
+
+    st.markdown("---")
+    st.subheader("📅 Daily Category Breakdown")
+
+    # Convert date column to datetime
+    df_view["date"] = pd.to_datetime(df_view["date"], errors="coerce")
+
+    # Group by date and category
+    daily_breakdown = df_view.groupby(["date", "category"])["amount"].sum().reset_index()
+
+    # Pivot to get categories as columns for grouped bar chart
+    pivot_table = daily_breakdown.pivot(index="date", columns="category", values="amount").fillna(0)
+
+    st.bar_chart(pivot_table)
+
 
     with tabs[2]:
         st.subheader("Delete Expense")

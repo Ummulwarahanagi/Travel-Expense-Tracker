@@ -235,7 +235,7 @@ with st.sidebar:
     st.markdown("---")
     if st.button("🚪 Logout"):
         st.experimental_set_query_params()
-        st.rerun()
+        st.experimental_rerun()
 
 # --- Pop-up AI Greeting & Message in Chat ---
 

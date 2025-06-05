@@ -278,18 +278,18 @@ with st.form("add_expense_form", clear_on_submit=True):
     description = st.text_input("Description")
     st.text(f"📍 Selected Location: {selected_location}")
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
-    submitted = st.form_submit_button("Add Expense")
-    
-    # 🔽 Optional sharing section inside the form
-    
-with st.expander("👥 Share this expense?"):
-    enable_sharing = st.checkbox("Split this expense with others?")
+
+    # 🔽 Move the sharing block here inside the form
+    enable_sharing = st.checkbox("👥 Split this expense with others?")
     shared_with = []
     if enable_sharing:
         shared_raw = st.text_input("Enter usernames/emails separated by commas")
         shared_with = [s.strip() for s in shared_raw.split(",") if s.strip()]
     else:
         shared_with = None
+
+    # ✅ Correctly placed submit button
+    submitted = st.form_submit_button("Add Expense")
 
 if submitted:
        errors = []

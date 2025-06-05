@@ -130,10 +130,6 @@ if "viewing_trip" not in st.session_state:
 if "last_ai_msg" not in st.session_state:
     st.session_state.last_ai_msg = ""
 
-# --- Sidebar: Trip Manager and Budget ---
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/4712/4712102.png", width=80)
-    # Pop-up style greeting in chat area, so skip sidebar greeting here.
 
     st.title("📂 Travel Expense Tracker")
     st.markdown("---")
@@ -201,11 +197,23 @@ with st.sidebar:
 
 # --- Pop-up AI Greeting & Message in Chat ---
 
-def ai_chat_message(msg, is_critical=False, avatar="🤖"):
-    # Color styling for critical messages
+def ai_chat_message(msg, is_critical=False, avatar="🤖", show_img=False):
     color = "#e74c3c" if is_critical else "#34495E"
     with st.chat_message(avatar):
-        st.markdown(f"<span style='color:{color}; font-weight:bold;'>{msg}</span>", unsafe_allow_html=True)
+        if show_img:
+            # Show image inline before the message
+            st.markdown(
+                f"<img src='https://cdn-icons-png.flaticon.com/512/4712/4712102.png' width='40' style='vertical-align: middle; margin-right: 10px;' />"
+                f"<span style='color:{color}; font-weight:bold;'>{msg}</span>",
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(f"<span style='color:{color}; font-weight:bold;'>{msg}</span>", unsafe_allow_html=True)
+
+# Then when greeting for first time:
+if not st.session_state.get("greeted", False):
+    ai_chat_message(f"Hello {username}! 👋 I'm your AI travel expense assistant. I'll help you stay on budget and give spending tips.", show_img=True)
+    st.session_state.greeted = True
 
 # Show greeting once per session
 if not st.session_state.get("greeted", False):

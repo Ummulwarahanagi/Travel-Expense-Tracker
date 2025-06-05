@@ -38,7 +38,7 @@ def nominatim_search(query, limit=5):
 
 # ------------------------- Streamlit Setup ---------------------------- #
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
-params = st.experimental_get_query_params()
+params = st.query_params
 username = params.get("username", [None])[0]
 
 if not username:

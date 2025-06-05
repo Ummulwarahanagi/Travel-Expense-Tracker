@@ -25,7 +25,7 @@ def nominatim_search(query, limit=5):
         "accept-language": "en",
     }
     headers = {
-        "User-Agent": "travel-expense-tracker-app (ummulwarahanagi@gmail.com)"
+        "User-Agent": "travel-expense-tracker-app (your-email@example.com)"
     }
     try:
         time.sleep(1)
@@ -112,8 +112,8 @@ def play_beep():
 
 # --- Streamlit Setup ---
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
-params = st.query_params
-username = params.get("username",None)
+params = st.experimental_get_query_params()
+username = params.get("username", [None])[0]
 
 if not username:
     st.error("⚠️ You are logged out. Please log in.")
@@ -131,6 +131,10 @@ if "last_ai_msg" not in st.session_state:
     st.session_state.last_ai_msg = ""
 
 # --- Sidebar: Trip Manager and Budget ---
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/4712/4712102.png", width=80)
+    # Pop-up style greeting in chat area, so skip sidebar greeting here.
+
     st.title("📂 Travel Expense Tracker")
     st.markdown("---")
 
@@ -154,7 +158,7 @@ if "last_ai_msg" not in st.session_state:
     # If user inputs new trip, update active trip and rerun
     if trip_input.strip() and trip_input.strip() != st.session_state.active_trip:
         st.session_state.active_trip = trip_input.strip()
-        st.rerun()
+        st.experimental_rerun()
 
     active_trip = st.session_state.active_trip
 
@@ -170,7 +174,7 @@ if "last_ai_msg" not in st.session_state:
         st.markdown(f"### 📂 Viewing Trip: `{st.session_state.viewing_trip}`")
         if st.button("🔄 Return to Active Trip"):
             st.session_state.viewing_trip = active_trip
-            st.rerun()
+            st.experimental_rerun()
     else:
         st.markdown(f"### 🗺️ Active Trip: `{active_trip}`")
 
@@ -199,7 +203,7 @@ if "last_ai_msg" not in st.session_state:
 
 def ai_chat_message(msg, is_critical=False, avatar="🤖"):
     # Color styling for critical messages
-    color = "white" if is_critical else "#34495E"
+    color = "#e74c3c" if is_critical else "#34495E"
     with st.chat_message(avatar):
         st.markdown(f"<span style='color:{color}; font-weight:bold;'>{msg}</span>", unsafe_allow_html=True)
 

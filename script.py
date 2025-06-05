@@ -133,6 +133,7 @@ if "last_ai_msg" not in st.session_state:
 # --- Sidebar: Trip Manager and Budget ---
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/4712/4712102.png", width=80)
+    st.text(f"Hello {username}!")
     # Pop-up style greeting in chat area, so skip sidebar greeting here.
 
     st.title("📂 Travel Expense Tracker")
@@ -203,13 +204,13 @@ with st.sidebar:
 
 def ai_chat_message(msg, is_critical=False, avatar="🤖"):
     # Color styling for critical messages
-    color = "#e74c3c" if is_critical else "#34495E"
+    color = "white" if is_critical else "#34495E"
     with st.chat_message(avatar):
         st.markdown(f"<span style='color:{color}; font-weight:bold;'>{msg}</span>", unsafe_allow_html=True)
 
 # Show greeting once per session
 if not st.session_state.get("greeted", False):
-    ai_chat_message(f"Hello {username}! 👋 I'm your AI travel expense assistant. I'll help you stay on budget and give spending tips.")
+    ai_chat_message("👋 I'm your AI travel expense assistant. I'll help you stay on budget and give spending tips.")
     st.session_state.greeted = True
 
 # --- Location input ---

@@ -279,12 +279,14 @@ with st.form("add_expense_form", clear_on_submit=True):
     st.text(f"📍 Selected Location: {selected_location}")
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
 
-    # ✅ Instead of a checkbox, use a dropdown with Yes/No
+    # ✅ Use dropdown for share option
     share_option = st.selectbox("Do you want to split this expense?", ["No", "Yes"])
 
-    shared_raw = ""
-    if share_option == "Yes":
-        shared_raw = st.text_input("Enter usernames/emails (comma-separated)")
+    # ✅ Always show text input, but enable only if "Yes"
+    shared_raw = st.text_input(
+        "Enter usernames/emails (comma-separated)",
+        disabled=(share_option == "No")
+    )
 
     submitted = st.form_submit_button("Add Expense")
 
@@ -316,6 +318,7 @@ if submitted:
                 amount, selected_location, trip=active_trip, shared_with=shared_with
             )
             st.success(f"✅ Expense added to `{active_trip}`!")
+
 
 
 

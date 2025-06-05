@@ -40,6 +40,9 @@ def nominatim_search(query, limit=5):
 
 # --- AI Suggestion Logic ---
 def ai_suggestion(df, category, amount, total_spent, budget):
+    def color_wrap(text):
+        return f"<span style='color:white;'>{text}</span>"
+
     if budget <= 0:
         starters = [
             "You're just getting started! 👍 Spend wisely.",
@@ -47,7 +50,7 @@ def ai_suggestion(df, category, amount, total_spent, budget):
             "Beginner's luck! Keep tracking those expenses. 💼",
             "Every rupee counts—let's make them work! 💪"
         ]
-        return random.choice(starters), False
+        return color_wrap(random.choice(starters)), False
 
     # Budget maxed out
     if total_spent >= budget:
@@ -57,7 +60,7 @@ def ai_suggestion(df, category, amount, total_spent, budget):
             f"⚠️ Budget exhausted! ₹{budget:,.2f} is your limit. Review your expenses.",
             f"🛑 Hold on! You reached the budget limit of ₹{budget:,.2f}."
         ]
-        return random.choice(limits), True  # True = critical alert
+        return color_wrap(random.choice(limits)), True  # True = critical alert
 
     # Near budget warning (90% spent)
     if total_spent >= 0.9 * budget:
@@ -67,30 +70,35 @@ def ai_suggestion(df, category, amount, total_spent, budget):
             f"⏳ Watch out! Your budget's almost full, ₹{budget - total_spent:,.2f} left to spend.",
             f"⚡ You're close to your budget limit—just ₹{budget - total_spent:,.2f} remains!"
         ]
-        return random.choice(warnings), True
+        return color_wrap(random.choice(warnings)), True
 
     # Normal spending suggestions
     cat_exp = df[df["category"] == category]["amount"].sum()
     avg_cat_exp = cat_exp / max(len(df[df["category"] == category]), 1)
 
-    high_spend_msgs = [
-        f"🚀 Wow! That's a big spend on `{category}` compared to usual. Keep an eye!",
-        f"⚠️ High expense alert for `{category}`! Make sure it's worth it.",
-        f"🔥 `{category}` spending spike detected. Budget wisely!",
-        f"💡 You splurged on `{category}` today. Monitor those costs!"
-    ]
-    low_spend_msgs = [
-        f"🎉 Nice! You're spending less than usual on `{category}`—smart move.",
-        f"✅ Keeping `{category}` costs low, great job!",
-        f"👍 Low spending on `{category}` is always welcome.",
-        f"🌱 Being frugal on `{category}` pays off!"
-    ]
-    normal_spend_msgs = [
-        f"👌 This `{category}` expense aligns well with your past spending.",
-        f"💼 `{category}` costs seem steady. Keep it up!",
-        f"📝 `{category}` spending is consistent with your habits.",
-        f"📊 `{category}` expense fits your budget pattern."
-    ]
+    if amount > avg_cat_exp * 1.5:
+        suggestion = random.choice([
+            f"🚀 Wow! That's a big spend on `{category}` compared to usual. Keep an eye!",
+            f"⚠️ High expense alert for `{category}`! Make sure it's worth it.",
+            f"🔥 `{category}` spending spike detected. Budget wisely!",
+            f"💡 You splurged on `{category}` today. Monitor those costs!"
+        ])
+    elif amount < avg_cat_exp * 0.5:
+        suggestion = random.choice([
+            f"🎉 Nice! You're spending less than usual on `{category}`—smart move.",
+            f"✅ Keeping `{category}` costs low, great job!",
+            f"👍 Low spending on `{category}` is always welcome.",
+            f"🌱 Being frugal on `{category}` pays off!"
+        ])
+    else:
+        suggestion = random.choice([
+            f"👌 This `{category}` expense aligns well with your past spending.",
+            f"💼 `{category}` costs seem steady. Keep it up!",
+            f"📝 `{category}` spending is consistent with your habits.",
+            f"📊 `{category}` expense fits your budget pattern."
+        ])
+
+    return color_wrap(suggestion), False
 
     if amount > avg_cat_exp * 1.5:
         return random.choice(high_spend_msgs), False
@@ -210,7 +218,7 @@ def ai_chat_message(msg, is_critical=False, avatar="🤖"):
 
 # Show greeting once per session
 if not st.session_state.get("greeted", False):
-    ai_chat_message("👋 I'm your AI travel expense assistant. I'll help you stay on budget and give spending tips.")
+    ai_chat_message(" <span style='color:white;'>👋 I'm your AI travel expense assistant. I'll help you stay on budget and give spending tips.")
     st.session_state.greeted = True
 
 # --- Location input ---

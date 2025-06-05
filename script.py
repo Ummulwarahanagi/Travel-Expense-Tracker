@@ -292,35 +292,62 @@ with st.form("add_expense_form", clear_on_submit=True):
     submitted = st.form_submit_button("Add Expense")
 
 
+    submitted = st.form_submit_button("Add Expense")
+
     if submitted:
-        # Check budget before adding
-        if total_spent + amount > curr_budget:
-            ai_msg = f"🚫 Cannot add expense! This would exceed your budget of ₹{curr_budget:,.2f}."
-            ai_chat_message(ai_msg, is_critical=True)
-            play_beep()
-        else:
-            add_expense_with_trip(gsheet, username, str(date), category, description, amount, selected_location, trip=active_trip,shared_with=shared_with)
+       errors = []
+
+       # Validation: Budget must be set and ≥ 1000
+       if curr_budget < 1000:
+          errors.append("⚠️ Please set a valid budget of at least ₹1000 before adding expenses.")
+
+       # Validation: All fields must be filled
+       if not description.strip():
+          errors.append("⚠️ Description cannot be empty.")
+       if amount <= 0:
+          errors.append("⚠️ Enter a valid amount greater than ₹0.")
+       if not selected_location or selected_location.strip() == "":
+          errors.append("⚠️ Please select a valid location.")
+    
+       if errors:
+          for err in errors:
+              st.warning(err)
+          play_beep()
+       else:
+           # Budget exceed check
+           if total_spent + amount > curr_budget:
+              ai_msg = f"🚫 Cannot add expense! This would exceed your budget of ₹{curr_budget:,.2f}."
+              ai_chat_message(ai_msg, is_critical=True)
+              play_beep()
+           else:
+                # Proceed to add expense
+                add_expense_with_trip(
+                    gsheet, username, str(date), category, description,
+                    amount, selected_location, trip=active_trip, shared_with=shared_with
+            )
             st.success(f"✅ Expense added to `{active_trip}`!")
-            # Reload data after add
+
+            # Reload and reprocess
             df = load_expense_with_trip(gsheet, username, trip=active_trip)
-            
             df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
             df["split_amount"] = pd.to_numeric(df.get("Split Amount", df["amount"]), errors="coerce").fillna(0)
             df["shared_with"] = df.get("shared_with").fillna("")
             df["is_shared"] = df["shared_with"].apply(lambda x: "✅" if str(x).strip() else "❌")
-            
+
             view_mode = st.radio("View Mode", ["All Expenses", "My Share Only"])
             if view_mode == "My Share Only":
                 df = df[df["username"] == username]
                 df["amount"] = df["split_amount"]
-                
+
             total_spent = df["split_amount"].sum()
             remaining_budget = curr_budget - total_spent
-            
+
+            # AI suggestion
             ai_msg, critical = ai_suggestion(df, category, amount, total_spent, curr_budget)
             ai_chat_message(ai_msg, is_critical=critical)
             if critical:
                 play_beep()
+
 
 # --- Expense summary and management ---
 st.markdown("---")

@@ -280,14 +280,15 @@ with st.form("add_expense_form", clear_on_submit=True):
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
     
     # 🔽 Optional sharing section inside the form
+    
+with st.expander("👥 Share this expense?"):
+    enable_sharing = st.checkbox("Split this expense with others?")
     shared_with = []
-    with st.expander("👥 Share this expense?"):
-        enable_sharing = st.checkbox("Split this expense with others?")
-        if enable_sharing:
-            shared_raw = st.text_input("Enter usernames/emails separated by commas")
-            shared_with = [s.strip() for s in shared_raw.split(",") if s.strip()]
-        else:
-            shared_with = None
+    if enable_sharing:
+        shared_raw = st.text_input("Enter usernames/emails separated by commas")
+        shared_with = [s.strip() for s in shared_raw.split(",") if s.strip()]
+    else:
+        shared_with = None
 
     submitted = st.form_submit_button("Add Expense")
 

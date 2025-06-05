@@ -271,11 +271,26 @@ remaining_budget = curr_budget - total_spent
 # --- Expense input form ---
 with st.form("add_expense_form", clear_on_submit=True):
     date = st.date_input("Date")
-    category = st.selectbox("Category", ["Flights", "Hotels", "Food", "Transport", "Miscellaneous", "Shopping", "Entertainment", "Fuel", "Medical", "Groceries", "Sightseeing"])
+    category = st.selectbox("Category", [
+        "Flights", "Hotels", "Food", "Transport", "Miscellaneous",
+        "Shopping", "Entertainment", "Fuel", "Medical", "Groceries", "Sightseeing"
+    ])
     description = st.text_input("Description")
     st.text(f"📍 Selected Location: {selected_location}")
     amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
+    
+    # 🔽 Optional sharing section inside the form
+    shared_with = []
+    with st.expander("👥 Share this expense?"):
+        enable_sharing = st.checkbox("Split this expense with others?")
+        if enable_sharing:
+            shared_raw = st.text_input("Enter usernames/emails separated by commas")
+            shared_with = [s.strip() for s in shared_raw.split(",") if s.strip()]
+        else:
+            shared_with = None
+
     submitted = st.form_submit_button("Add Expense")
+
 
     if submitted:
         # Check budget before adding
@@ -284,14 +299,24 @@ with st.form("add_expense_form", clear_on_submit=True):
             ai_chat_message(ai_msg, is_critical=True)
             play_beep()
         else:
-            add_expense_with_trip(gsheet, username, str(date), category, description, amount, selected_location, trip=active_trip)
+            add_expense_with_trip(gsheet, username, str(date), category, description, amount, selected_location, trip=active_trip,shared_with=shared_with)
             st.success(f"✅ Expense added to `{active_trip}`!")
             # Reload data after add
             df = load_expense_with_trip(gsheet, username, trip=active_trip)
+            
             df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
-            total_spent = df["amount"].sum()
+            df["split_amount"] = pd.to_numeric(df.get("Split Amount", df["amount"]), errors="coerce").fillna(0)
+            df["shared_with"] = df.get("Shared With", "").fillna("")
+            df["is_shared"] = df["shared_with"].apply(lambda x: "✅" if str(x).strip() else "❌")
+            
+            view_mode = st.radio("View Mode", ["All Expenses", "My Share Only"])
+            if view_mode == "My Share Only":
+                df = df[df["username"] == username]
+                df["amount"] = df["split_amount"]
+                
+            total_spent = df["split_amount"].sum()
             remaining_budget = curr_budget - total_spent
-
+            
             ai_msg, critical = ai_suggestion(df, category, amount, total_spent, curr_budget)
             ai_chat_message(ai_msg, is_critical=critical)
             if critical:

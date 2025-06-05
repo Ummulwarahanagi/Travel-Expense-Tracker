@@ -112,8 +112,8 @@ def play_beep():
 
 # --- Streamlit Setup ---
 st.set_page_config(page_title="Travel Expense Tracker", layout="wide")
-params = st.experimental_get_query_params()
-username = params.get("username", [None])[0]
+params = st.query_params
+username = params.get("username",None)
 
 if not username:
     st.error("⚠️ You are logged out. Please log in.")
@@ -159,7 +159,7 @@ with st.sidebar:
     # If user inputs new trip, update active trip and rerun
     if trip_input.strip() and trip_input.strip() != st.session_state.active_trip:
         st.session_state.active_trip = trip_input.strip()
-        st.experimental_rerun()
+        st.rerun()
 
     active_trip = st.session_state.active_trip
 
@@ -175,7 +175,7 @@ with st.sidebar:
         st.markdown(f"### 📂 Viewing Trip: `{st.session_state.viewing_trip}`")
         if st.button("🔄 Return to Active Trip"):
             st.session_state.viewing_trip = active_trip
-            st.experimental_rerun()
+            st.rerun()
     else:
         st.markdown(f"### 🗺️ Active Trip: `{active_trip}`")
 
@@ -198,7 +198,7 @@ with st.sidebar:
 
     if st.button("🚪 Logout"):
         st.experimental_set_query_params()
-        st.experimental_rerun()
+        st.rerun()
 
 # --- Pop-up AI Greeting & Message in Chat ---
 

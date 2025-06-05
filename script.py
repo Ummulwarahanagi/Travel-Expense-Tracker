@@ -131,10 +131,6 @@ if "last_ai_msg" not in st.session_state:
     st.session_state.last_ai_msg = ""
 
 # --- Sidebar: Trip Manager and Budget ---
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/4712/4712102.png", width=80)
-    # Pop-up style greeting in chat area, so skip sidebar greeting here.
-
     st.title("📂 Travel Expense Tracker")
     st.markdown("---")
 
@@ -203,7 +199,7 @@ with st.sidebar:
 
 def ai_chat_message(msg, is_critical=False, avatar="🤖"):
     # Color styling for critical messages
-    color = "#e74c3c" if is_critical else "#34495E"
+    color = "white" if is_critical else "#34495E"
     with st.chat_message(avatar):
         st.markdown(f"<span style='color:{color}; font-weight:bold;'>{msg}</span>", unsafe_allow_html=True)
 

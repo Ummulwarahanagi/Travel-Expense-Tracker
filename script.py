@@ -324,29 +324,29 @@ with st.form("add_expense_form", clear_on_submit=True):
                 add_expense_with_trip(
                     gsheet, username, str(date), category, description,
                     amount, selected_location, trip=active_trip, shared_with=shared_with
-            )
-            st.success(f"✅ Expense added to `{active_trip}`!")
+                )
+                st.success(f"✅ Expense added to `{active_trip}`!")
 
-            # Reload and reprocess
-            df = load_expense_with_trip(gsheet, username, trip=active_trip)
-            df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
-            df["split_amount"] = pd.to_numeric(df.get("Split Amount", df["amount"]), errors="coerce").fillna(0)
-            df["shared_with"] = df.get("shared_with").fillna("")
-            df["is_shared"] = df["shared_with"].apply(lambda x: "✅" if str(x).strip() else "❌")
+                # Reload and reprocess
+                df = load_expense_with_trip(gsheet, username, trip=active_trip)
+                df["amount"] = pd.to_numeric(df["amount"], errors="coerce").fillna(0)
+                df["split_amount"] = pd.to_numeric(df.get("Split Amount", df["amount"]), errors="coerce").fillna(0)
+                df["shared_with"] = df.get("shared_with").fillna("")
+                df["is_shared"] = df["shared_with"].apply(lambda x: "✅" if str(x).strip() else "❌")
 
-            view_mode = st.radio("View Mode", ["All Expenses", "My Share Only"])
-            if view_mode == "My Share Only":
-                df = df[df["username"] == username]
-                df["amount"] = df["split_amount"]
+                view_mode = st.radio("View Mode", ["All Expenses", "My Share Only"])
+                if view_mode == "My Share Only":
+                   df = df[df["username"] == username]
+                   df["amount"] = df["split_amount"]
 
-            total_spent = df["split_amount"].sum()
-            remaining_budget = curr_budget - total_spent
+                total_spent = df["split_amount"].sum()
+                remaining_budget = curr_budget - total_spent
 
-            # AI suggestion
-            ai_msg, critical = ai_suggestion(df, category, amount, total_spent, curr_budget)
-            ai_chat_message(ai_msg, is_critical=critical)
-            if critical:
-                play_beep()
+                # AI suggestion
+                ai_msg, critical = ai_suggestion(df, category, amount, total_spent, curr_budget)
+                ai_chat_message(ai_msg, is_critical=critical)
+                if critical:
+                   play_beep()
 
 
 # --- Expense summary and management ---

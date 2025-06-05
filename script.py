@@ -291,9 +291,6 @@ with st.form("add_expense_form", clear_on_submit=True):
 
     submitted = st.form_submit_button("Add Expense")
 
-
-    submitted = st.form_submit_button("Add Expense")
-
     if submitted:
        errors = []
 
